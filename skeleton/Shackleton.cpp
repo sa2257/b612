@@ -31,7 +31,13 @@ namespace {
       bool finialize(Module &M); //print global variable
       void createInstr(BasicBlock &bb, Constant *counter_ptr, int num);
       
-      vector<string> atomicCounter = {"instructionCounter", "basicBlockCounter", "mulCounter", "memOpCounter", "branchCounter"}; //keep global variable names for profiling. e.g. instr counter
+      vector<string> atomicCounter = {  "instructionCounter", "basicBlockCounter", 
+                                        "addCounter", "subCounter", "mulCounter", "divCounter", "remCounter",
+                                        "andCounter", "orCounter", "xorCounter",
+                                        "branchCounter", "switchCounter",
+                                        "storeCounter", "loadCounter",
+                                        "otherCount"
+                                     }; //keep global variable names for profiling. e.g. instr counter
   };
 }
 
@@ -105,25 +111,69 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     // get instruction number and basic block number.
     int instr = 0;
     int basic_block = 1;
+    int add_instr = 0;
+    int sub_instr = 0;
     int mul_instr = 0;
+    int div_instr = 0;
+    int rem_instr = 0;
+    int and_instr = 0;
+    int or_instr = 0;
+    int xor_instr = 0;
     int br_instr = 0;
-    int mem_instr = 0;
+    int sw_instr = 0;
+    int str_instr = 0;
+    int ld_instr = 0;
+    int other = 0;
     
-    instr += bb.size();
+    instr += bb.size(); // this includes atomicrmws introduced by this pass
     for (auto it = bb.begin(); it != bb.end(); it++) {
-        //errs() << it->getOpcodeName() << "\n";
         switch (it->getOpcode()) {
+            case Instruction::Add: // addition
+                add_instr++;
+                continue;
+            case Instruction::Sub: // subtraction
+                sub_instr++;
+                continue;
             case Instruction::Mul: // multiplication
                 mul_instr++;
+                continue;
+            case Instruction::UDiv: // division unsigned
+            case Instruction::SDiv: // division signed
+                div_instr++;
+                continue;
+            case Instruction::URem: // remainder unsigned
+            case Instruction::SRem: // remainder signed
+                rem_instr++;
+                continue;
+            case Instruction::And: // and
+                and_instr++;
+                continue;
+            case Instruction::Or: // or
+                or_instr++;
+                continue;
+            case Instruction::Xor: // xor
+                xor_instr++;
                 continue;
             case Instruction::Br: // branch
                 br_instr++;
                 continue;
+            case Instruction::Switch: // switch
+                sw_instr++;
+                continue;
             case Instruction::Store: // store
+                str_instr++;
+                continue;
             case Instruction::Load: // load
-                mem_instr++;
+                ld_instr++;
+                continue;
+            case Instruction::Alloca: // allocate stack memory
+            case Instruction::Call: // function call
+            case Instruction::Ret: // return
+            case Instruction::AtomicRMW: // atomic read-modify-write
                 continue;
             default:
+                errs() << it->getOpcodeName() << "\n";
+                other++;
                 break;
         }
     }
@@ -131,9 +181,19 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     // create atomic addition instruction
     createInstr(bb, instrCounter[0], instr);
     createInstr(bb, instrCounter[1], basic_block);
-    createInstr(bb, instrCounter[2], mul_instr);
-    createInstr(bb, instrCounter[3], br_instr);
-    createInstr(bb, instrCounter[4], mem_instr);
+    createInstr(bb, instrCounter[2], add_instr);
+    createInstr(bb, instrCounter[3], sub_instr);
+    createInstr(bb, instrCounter[4], mul_instr);
+    createInstr(bb, instrCounter[5], div_instr);
+    createInstr(bb, instrCounter[6], rem_instr);
+    createInstr(bb, instrCounter[7], and_instr);
+    createInstr(bb, instrCounter[8], or_instr);
+    createInstr(bb, instrCounter[9], xor_instr);
+    createInstr(bb, instrCounter[10], br_instr);
+    createInstr(bb, instrCounter[11], sw_instr);
+    createInstr(bb, instrCounter[12], str_instr);
+    createInstr(bb, instrCounter[13], ld_instr);
+    createInstr(bb, instrCounter[14], other);
     
     return true;
 }
