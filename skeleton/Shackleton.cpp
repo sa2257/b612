@@ -31,7 +31,7 @@ namespace {
       bool finialize(Module &M); //print global variable
       void createInstr(BasicBlock &bb, Constant *counter_ptr, int num);
       
-      vector<string> atomicCounter = {"llvmInstrAtomicCounter", "basicBlockAtomicCounter", "mulAtomicCounter", "memOpAtomicCounter", "branchAtomicCounter"}; //keep global variable names for profiling. e.g. instr counter
+      vector<string> atomicCounter = {"instructionCounter", "basicBlockCounter", "mulCounter", "memOpCounter", "branchCounter"}; //keep global variable names for profiling. e.g. instr counter
   };
 }
 
@@ -47,31 +47,13 @@ bool ShackletonPass::runOnModule(Module &M)
     
     return modified;
 }
+
 bool ShackletonPass::runOnFunction(Function &F, Module &M)
 {
     bool modified = false;
     //errs() << F.getName() << "\n";
   
-  /*
-    BasicBlock &b = F.getEntryBlock();
-    Type *I64Ty = Type::getInt64Ty(M.getContext());
-    IRBuilder<> Builder(F.getContext());
-    Twine s = F.getName()+".glob";
-    Value *atomicCounter = M.getOrInsertGlobal(s.str(), I64Ty);
-    Value *One = ConstantInt::get(Type::getInt64Ty(F.getContext()), 1);
-
-    new AtomicRMWInst(AtomicRMWInst::Add,
-                      atomicCounter,
-                      ConstantInt::get(Type::getInt64Ty(F.getContext()), 1),
-                      AtomicOrdering::SequentiallyConsistent,
-                      SyncScope::System, b.getFirstNonPHI ());
- 
-    errs()<< b;
-    free(&b);
- */
     for (auto it = F.begin(); it != F.end(); it++) {
-    
-    
         if (it==F.begin()){
             Type *I64Ty = Type::getInt64Ty(M.getContext());
             IRBuilder<> Builder(F.getContext());
@@ -86,13 +68,10 @@ bool ShackletonPass::runOnFunction(Function &F, Module &M)
                               SyncScope::System, it->getFirstNonPHI ());
                               
         }
-    
         
         modified |= runOnBasicBlock(*it, M);
         
     }
-    
-    
 
     //Value *result = Builder.CreateAdd(atomicCounter,One,"func_add");
     
@@ -114,16 +93,14 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
 {
     // Get the global variable for atomic counter
     Type *I64Ty = Type::getInt64Ty(M.getContext());
-    Constant *instrCounter = M.getOrInsertGlobal("llvmInstrAtomicCounter", I64Ty);
-    assert(instrCounter && "Could not declare or find llvmInstrAtomicCounter global");
-    Constant *bbCounter = M.getOrInsertGlobal("basicBlockAtomicCounter", I64Ty);
-    assert(bbCounter && "Could not declare or find basicBlockAtomicCounter global");
-    Constant *mulCounter = M.getOrInsertGlobal("mulAtomicCounter", I64Ty);
-    assert(mulCounter && "Could not declare or find mulAtomicCounter global");
-    Constant *brCounter = M.getOrInsertGlobal("branchAtomicCounter", I64Ty);
-    assert(brCounter && "Could not declare or find branchAtomicCounter global");
-    Constant *memCounter = M.getOrInsertGlobal("memOpAtomicCounter", I64Ty);
-    assert(memCounter && "Could not declare or find memOpAtomicCounter global");
+    Constant *instrCounter[atomicCounter.size()];
+    for (int i = 0; i < atomicCounter.size(); i++){
+        instrCounter[i] = M.getOrInsertGlobal(atomicCounter[i], I64Ty);
+        char message[1024];
+        sprintf(message, "Could not declare or find one global var");
+        //string message = string("Could not declare or find ") + atomicCounter[i] + " global";
+        assert(instrCounter[i] && message);
+    }
     
     // get instruction number and basic block number.
     int instr = 0;
@@ -152,11 +129,11 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     }
     
     // create atomic addition instruction
-    createInstr(bb, bbCounter, basic_block);
-    createInstr(bb, instrCounter,instr);
-    createInstr(bb, mulCounter,mul_instr);
-    createInstr(bb, brCounter,br_instr);
-    createInstr(bb, memCounter,mem_instr);
+    createInstr(bb, instrCounter[0], instr);
+    createInstr(bb, instrCounter[1], basic_block);
+    createInstr(bb, instrCounter[2], mul_instr);
+    createInstr(bb, instrCounter[3], br_instr);
+    createInstr(bb, instrCounter[4], mem_instr);
     
     return true;
 }
@@ -175,13 +152,7 @@ bool ShackletonPass::initialize(Module &M)
     
     for (int i = 0; i < atomicCounter.size(); i++){
         new GlobalVariable(M, I64Ty, false, GlobalValue::CommonLinkage, ConstantInt::get(I64Ty, 0), atomicCounter[i]);
-        /*
-    new GlobalVariable(M, I64Ty, false, GlobalValue::CommonLinkage, ConstantInt::get(I64Ty, 0), "basicBasicAtomicCounter");
-    new GlobalVariable(M, I64Ty, false, GlobalValue::CommonLinkage, ConstantInt::get(I64Ty, 0), "MemOpAtomicCounter");
-    new GlobalVariable(M, I64Ty, false, GlobalValue::CommonLinkage, ConstantInt::get(I64Ty, 0), "branchAtomicCounter");
-    new GlobalVariable(M, I64Ty, false, GlobalValue::CommonLinkage, ConstantInt::get(I64Ty, 0), "mulAtomicCounter");*/
     }
-    
     
     auto &functionList = M.getFunctionList();
     for (auto &function : functionList) {
@@ -231,10 +202,7 @@ bool ShackletonPass::finialize(Module &M){
                     
                 }
                 
-                
-                
                 Value *format_long;
-                
                 
                 auto &functionList = M.getFunctionList(); // gets the list of functions
                 Type *I64Ty = Type::getInt64Ty(M.getContext());
@@ -262,4 +230,4 @@ bool ShackletonPass::finialize(Module &M){
 char ShackletonPass::ID = 0;
 
 // Register the pass so `opt -shackleton` runs it.
-static RegisterPass<ShackletonPass> X("shackleton", "a useless pass");
+static RegisterPass<ShackletonPass> X("shackleton", "a profiling pass");
