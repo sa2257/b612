@@ -3,6 +3,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/IRBuilder.h"
 using namespace llvm;
 
 namespace {
@@ -12,6 +14,28 @@ namespace {
 
     virtual bool runOnFunction(Function &F) {
       errs() << "I saw a function called " << F.getName() << "!\n";
+      for (auto &B: F) {
+          errs() << "a block\n";
+          for (auto &I: B) {
+              errs() << "an instruction: " << I << " \n";
+              BinaryOperator *bop = dyn_cast<BinaryOperator>(&I);
+              if (bop) {
+                  errs() << "above is a binary operator!\n";
+                  Value* lhs = bop->getOperand(0);
+                  Value* rhs = bop->getOperand(1);
+                  errs() << *lhs << "\n";
+                  errs() << *rhs << "\n";
+
+                  IRBuilder<> builder(bop);
+                  Value* mul = builder.CreateMul(lhs, rhs);
+
+                  for (auto& U : bop->uses()) {
+                      User* user = U.getUser();  // A User is anything with operands.
+                      user->setOperand(U.getOperandNo(), mul);
+                  }
+              }
+          }
+      }
       return false;
     }
   };
