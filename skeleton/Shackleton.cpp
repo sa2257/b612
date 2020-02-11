@@ -15,8 +15,13 @@
 #include <string.h>
 #include <vector>
 
+#include "llvm/Support/CommandLine.h"
+
 using namespace std;
 using namespace llvm;
+
+static cl::opt<string> InputModule("function", cl::desc("Specify function to run pass"), cl::value_desc("module"));
+static cl::opt<bool> SwitchOn("select", cl::desc("Select to run pass"));
 
 namespace {
   struct ShackletonPass : public ModulePass {
@@ -29,7 +34,7 @@ namespace {
       
       bool initialize(Module &M); //create global variable
       bool finialize(Module &M); //print global variable
-      void createInstr(BasicBlock &bb, Constant *counter_ptr, int num);
+      void createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc);
       
       vector<string> atomicCounter = {  "instructionCounter", "basicBlockCounter", 
                                         "addCounter", "subCounter", "mulCounter", "divCounter", "remCounter",
@@ -45,8 +50,10 @@ bool ShackletonPass::runOnModule(Module &M)
 {
     bool modified = initialize(M);
     
-    for (auto it = M.begin(); it != M.end(); it++) {
-        modified |= runOnFunction(*it, M);
+    errs() << "Pass run status: " << SwitchOn << "\n";
+    errs() << "Pass running on: " << InputModule << "\n";
+    for (auto func = M.begin(); func != M.end(); func++) {
+        modified |= runOnFunction(*func, M);
     }
     modified |= finialize(M);
     //M.dump();
@@ -54,45 +61,49 @@ bool ShackletonPass::runOnModule(Module &M)
     return modified;
 }
 
-bool ShackletonPass::runOnFunction(Function &F, Module &M)
-{
-    bool modified = false;
-    //errs() << F.getName() << "\n";
-  
-    for (auto it = F.begin(); it != F.end(); it++) {
-        if (it==F.begin()){
-            Type *I64Ty = Type::getInt64Ty(M.getContext());
-            IRBuilder<> Builder(F.getContext());
-            Twine s = F.getName()+".glob";
-            Value *atomicCounter = M.getOrInsertGlobal(s.str(), I64Ty);
-            Value *One = ConstantInt::get(Type::getInt64Ty(F.getContext()), 1);
-            
-            new AtomicRMWInst(AtomicRMWInst::Add,
-                              atomicCounter,
-                              ConstantInt::get(Type::getInt64Ty(F.getContext()), 1),
-                              AtomicOrdering::SequentiallyConsistent,
-                              SyncScope::System, it->getFirstNonPHI ());
-                              
-        }
-        
-        modified |= runOnBasicBlock(*it, M);
-        
-    }
-
-    //Value *result = Builder.CreateAdd(atomicCounter,One,"func_add");
-    
-    return modified;
-}
-
-void ShackletonPass::createInstr(BasicBlock &bb, Constant *counter_ptr, int num){
+void ShackletonPass::createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc){
+    Instruction *before  = loc ? bb.getTerminator() : bb.getFirstNonPHI();
     if(num){ // create atomic addition instruction
         new AtomicRMWInst(AtomicRMWInst::Add,
                       counter_ptr, // pointer to global variable
                       ConstantInt::get(Type::getInt64Ty(bb.getContext()), num), //create integer with value num
                       AtomicOrdering::SequentiallyConsistent, //operations may not be reordered
                       SyncScope::System, // synchronize to all threads
-                      bb.getTerminator()); //insert right before block terminator
+                      before); //insert right before block terminator
     }
+}
+
+bool ShackletonPass::runOnFunction(Function &F, Module &M)
+{
+    bool modified = false;
+    //errs() << F.getName() << "\n";
+    string funcName = F.getName();
+
+    for (auto bb = F.begin(); bb != F.end(); bb++) {
+        if (SwitchOn || funcName == InputModule) {
+            modified |= runOnBasicBlock(*bb, M);
+        }
+        
+        if (bb==F.begin()){
+            Type *I64Ty = Type::getInt64Ty(M.getContext());
+            IRBuilder<> Builder(F.getContext());
+            Twine s = F.getName()+".glob";
+            Constant *atomicCounter = M.getOrInsertGlobal(s.str(), I64Ty);
+            Value *One = ConstantInt::get(Type::getInt64Ty(F.getContext()), 1);
+            
+            createInstr(*bb, atomicCounter, 1, false);
+            //new AtomicRMWInst(AtomicRMWInst::Add,
+            //                  atomicCounter,
+            //                  ConstantInt::get(Type::getInt64Ty(F.getContext()), 1),
+            //                  AtomicOrdering::SequentiallyConsistent,
+            //                  SyncScope::System, bb->getFirstNonPHI ());
+            modified |= true;                  
+        }
+    }
+
+    //Value *result = Builder.CreateAdd(atomicCounter,One,"func_add");
+    
+    return modified;
 }
 
 bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
@@ -169,31 +180,30 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
             case Instruction::Alloca: // allocate stack memory
             case Instruction::Call: // function call
             case Instruction::Ret: // return
-            case Instruction::AtomicRMW: // atomic read-modify-write
                 continue;
             default:
-                errs() << it->getOpcodeName() << "\n";
+            //    errs() << it->getOpcodeName() << "\n";
                 other++;
                 break;
         }
     }
     
     // create atomic addition instruction
-    createInstr(bb, instrCounter[0], instr);
-    createInstr(bb, instrCounter[1], basic_block);
-    createInstr(bb, instrCounter[2], add_instr);
-    createInstr(bb, instrCounter[3], sub_instr);
-    createInstr(bb, instrCounter[4], mul_instr);
-    createInstr(bb, instrCounter[5], div_instr);
-    createInstr(bb, instrCounter[6], rem_instr);
-    createInstr(bb, instrCounter[7], and_instr);
-    createInstr(bb, instrCounter[8], or_instr);
-    createInstr(bb, instrCounter[9], xor_instr);
-    createInstr(bb, instrCounter[10], br_instr);
-    createInstr(bb, instrCounter[11], sw_instr);
-    createInstr(bb, instrCounter[12], str_instr);
-    createInstr(bb, instrCounter[13], ld_instr);
-    createInstr(bb, instrCounter[14], other);
+    createInstr(bb, instrCounter[0] , instr      , true);
+    createInstr(bb, instrCounter[1] , basic_block, true);
+    createInstr(bb, instrCounter[2] , add_instr  , true);
+    createInstr(bb, instrCounter[3] , sub_instr  , true);
+    createInstr(bb, instrCounter[4] , mul_instr  , true);
+    createInstr(bb, instrCounter[5] , div_instr  , true);
+    createInstr(bb, instrCounter[6] , rem_instr  , true);
+    createInstr(bb, instrCounter[7] , and_instr  , true);
+    createInstr(bb, instrCounter[8] , or_instr   , true);
+    createInstr(bb, instrCounter[9] , xor_instr  , true);
+    createInstr(bb, instrCounter[10], br_instr   , true);
+    createInstr(bb, instrCounter[11], sw_instr   , true);
+    createInstr(bb, instrCounter[12], str_instr  , true);
+    createInstr(bb, instrCounter[13], ld_instr   , true);
+    createInstr(bb, instrCounter[14], other      , true);
     
     return true;
 }
@@ -261,6 +271,12 @@ bool ShackletonPass::finialize(Module &M){
                     CallInst::Create(printF, argVec, "printf", &*it); //create printf function with the return value name called printf (with suffix if already exists)
                     
                 }
+                
+                Value *format_empty;
+                format_empty = Builder.CreateGlobalStringPtr("\n\n", "formatEmpty"); // create empty string
+                std::vector<Value *> argVec;
+                argVec.push_back(format_empty);
+                CallInst::Create(printF, argVec, "printf", &*it); //create printf function for a new line
                 
                 Value *format_long;
                 
