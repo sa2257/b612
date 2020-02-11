@@ -1,9 +1,8 @@
-; ModuleID = 'gemm.c'
+; ModuleID = 'gemm.ll'
 source_filename = "gemm.c"
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.15.0"
 
-@gemm.glob = external global i64
 @instructionCounter = external global i64
 @basicBlockCounter = external global i64
 @addCounter = external global i64
@@ -19,6 +18,7 @@ target triple = "x86_64-apple-macosx10.15.0"
 @storeCounter = external global i64
 @loadCounter = external global i64
 @otherCount = external global i64
+@gemm.glob = external global i64
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
 define void @gemm(i32*, i32*, i32*) #0 {
@@ -36,13 +36,13 @@ define void @gemm(i32*, i32*, i32*) #0 {
   store i32* %0, i32** %5, align 8
   store i32* %1, i32** %6, align 8
   store i32* %2, i32** %7, align 8
-  %15 = atomicrmw add i64* @instructionCounter, i64 15 seq_cst
+  %15 = atomicrmw add i64* @instructionCounter, i64 14 seq_cst
   %16 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
   %17 = atomicrmw add i64* @branchCounter, i64 1 seq_cst
   %18 = atomicrmw add i64* @storeCounter, i64 3 seq_cst
   br label %19
 
-; <label>:19:                                     ; preds = %3
+19:                                               ; preds = %3
   store i32 0, i32* %8, align 4
   %20 = atomicrmw add i64* @instructionCounter, i64 2 seq_cst
   %21 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
@@ -50,7 +50,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %23 = atomicrmw add i64* @storeCounter, i64 1 seq_cst
   br label %24
 
-; <label>:24:                                     ; preds = %137, %19
+24:                                               ; preds = %137, %19
   %25 = load i32, i32* %8, align 4
   %26 = icmp slt i32 %25, 64
   %27 = atomicrmw add i64* @instructionCounter, i64 3 seq_cst
@@ -60,13 +60,13 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %31 = atomicrmw add i64* @otherCount, i64 1 seq_cst
   br i1 %26, label %32, label %146
 
-; <label>:32:                                     ; preds = %24
+32:                                               ; preds = %24
   %33 = atomicrmw add i64* @instructionCounter, i64 1 seq_cst
   %34 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
   %35 = atomicrmw add i64* @branchCounter, i64 1 seq_cst
   br label %36
 
-; <label>:36:                                     ; preds = %32
+36:                                               ; preds = %32
   store i32 0, i32* %9, align 4
   %37 = atomicrmw add i64* @instructionCounter, i64 2 seq_cst
   %38 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
@@ -74,7 +74,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %40 = atomicrmw add i64* @storeCounter, i64 1 seq_cst
   br label %41
 
-; <label>:41:                                     ; preds = %124, %36
+41:                                               ; preds = %124, %36
   %42 = load i32, i32* %9, align 4
   %43 = icmp slt i32 %42, 64
   %44 = atomicrmw add i64* @instructionCounter, i64 3 seq_cst
@@ -84,7 +84,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %48 = atomicrmw add i64* @otherCount, i64 1 seq_cst
   br i1 %43, label %49, label %133
 
-; <label>:49:                                     ; preds = %41
+49:                                               ; preds = %41
   %50 = load i32, i32* %8, align 4
   %51 = mul nsw i32 %50, 64
   store i32 %51, i32* %12, align 4
@@ -97,7 +97,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %57 = atomicrmw add i64* @loadCounter, i64 1 seq_cst
   br label %58
 
-; <label>:58:                                     ; preds = %49
+58:                                               ; preds = %49
   store i32 0, i32* %10, align 4
   %59 = atomicrmw add i64* @instructionCounter, i64 2 seq_cst
   %60 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
@@ -105,7 +105,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %62 = atomicrmw add i64* @storeCounter, i64 1 seq_cst
   br label %63
 
-; <label>:63:                                     ; preds = %100, %58
+63:                                               ; preds = %100, %58
   %64 = load i32, i32* %10, align 4
   %65 = icmp slt i32 %64, 64
   %66 = atomicrmw add i64* @instructionCounter, i64 3 seq_cst
@@ -115,7 +115,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %70 = atomicrmw add i64* @otherCount, i64 1 seq_cst
   br i1 %65, label %71, label %109
 
-; <label>:71:                                     ; preds = %63
+71:                                               ; preds = %63
   %72 = load i32, i32* %10, align 4
   %73 = mul nsw i32 %72, 64
   store i32 %73, i32* %11, align 4
@@ -149,7 +149,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %99 = atomicrmw add i64* @otherCount, i64 4 seq_cst
   br label %100
 
-; <label>:100:                                   ; preds = %71
+100:                                              ; preds = %71
   %101 = load i32, i32* %10, align 4
   %102 = add nsw i32 %101, 1
   store i32 %102, i32* %10, align 4
@@ -161,7 +161,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %108 = atomicrmw add i64* @loadCounter, i64 1 seq_cst
   br label %63
 
-; <label>:109:                                   ; preds = %63
+109:                                              ; preds = %63
   %110 = load i32, i32* %14, align 4
   %111 = load i32*, i32** %7, align 8
   %112 = load i32, i32* %12, align 4
@@ -179,7 +179,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %123 = atomicrmw add i64* @otherCount, i64 2 seq_cst
   br label %124
 
-; <label>:124:                                   ; preds = %109
+124:                                              ; preds = %109
   %125 = load i32, i32* %9, align 4
   %126 = add nsw i32 %125, 1
   store i32 %126, i32* %9, align 4
@@ -191,13 +191,13 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %132 = atomicrmw add i64* @loadCounter, i64 1 seq_cst
   br label %41
 
-; <label>:133:                                   ; preds = %41
+133:                                              ; preds = %41
   %134 = atomicrmw add i64* @instructionCounter, i64 1 seq_cst
   %135 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
   %136 = atomicrmw add i64* @branchCounter, i64 1 seq_cst
   br label %137
 
-; <label>:137:                                   ; preds = %133
+137:                                              ; preds = %133
   %138 = load i32, i32* %8, align 4
   %139 = add nsw i32 %138, 1
   store i32 %139, i32* %8, align 4
@@ -209,7 +209,7 @@ define void @gemm(i32*, i32*, i32*) #0 {
   %145 = atomicrmw add i64* @loadCounter, i64 1 seq_cst
   br label %24
 
-; <label>:146:                                   ; preds = %24
+146:                                              ; preds = %24
   %147 = atomicrmw add i64* @instructionCounter, i64 1 seq_cst
   %148 = atomicrmw add i64* @basicBlockCounter, i64 1 seq_cst
   ret void
