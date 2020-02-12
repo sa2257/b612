@@ -5,7 +5,7 @@ M. D. Lam, E. E. Rothberg, and M. E. Wolf
 ASPLOS 1991
 */
 
-#include "func.h"
+#include "gemm.h"
 
 void gemm(TYPE m1[N], TYPE m2[N], TYPE prod[N]){
 #pragma HLS INTERFACE s_axilite port=m1

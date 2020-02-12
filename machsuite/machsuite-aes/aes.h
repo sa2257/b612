@@ -2,7 +2,6 @@
 *   Byte-oriented AES-256 implementation.
 *   All lookup tables replaced with 'on the fly' calculations.
 */
-#include "support.h"
 
 typedef struct {
   uint8_t key[32];

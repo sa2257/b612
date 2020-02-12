@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include "gemm.h"
+#include "sort.h"
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -86,31 +86,11 @@ void run_benchmark() {
     p = readfile(in_fd);
     
     s = find_section_start(p,1);
-    parse_int_array(s, args.m1, N);
-    
-    s = find_section_start(p,2);
-    parse_int_array(s, args.m2, N);
+    parse_int_array(s, args.a, SIZE);
     free(p);
 
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//            printf("%d- ",args.m1[i * row_size + j]);
-//            printf("%d, ",args.m2[i * row_size + j]);
-//            args.m1[i * row_size + j] = 1 + i * row_size + j;
-//            args.m2[i * row_size + j] = rand() / (N);
-            args.prod[i * row_size + j] = 0;
-        }
-//        printf("\n");
-    }
-//    printf("\n");
-    gemm( args.m1, args.m2, args.prod );
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//              printf("%d-", args.prod[i * row_size + j]);
-        }
-//        printf("\n");
-    }
-    printf("One example output is %d \n", args.prod[N-1]);
+    sort( args.a, args.b, args.bucket, args.sum );
+    printf("One example output is %d \n", args.a[SIZE-1]);
 }
 
 int main () {

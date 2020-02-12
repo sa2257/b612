@@ -1,4 +1,4 @@
-KERNEL     = gemm
+KERNEL     = aes
 HW_SRCS    = $(KERNEL).c
 HOST_SRCS  = bench.c
 

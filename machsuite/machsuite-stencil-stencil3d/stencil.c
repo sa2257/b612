@@ -5,7 +5,7 @@ K. Datta, M. Murphy, V. Volkov, S. Williams, J. Carter, L. Oliker, D. Patterson,
 SC 2008
 */
 
-#include "func.h"
+#include "stencil.h"
 
 void stencil(TYPE C[2], TYPE orig[SIZE], TYPE sol[SIZE]) {
 #pragma HLS INTERFACE s_axilite port=C
