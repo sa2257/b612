@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include "gemm.h"
+#include "spmv.h"
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -47,7 +47,33 @@ char *find_section_start(char *s, int n) {
   return s; // Hit the end, return an empty string
 }
 
-int parse_int_array(char *s, TYPE *arr, int n) { 
+int parse_int_array(char *s, TYPE2 *arr, int n) { 
+  char *line, *endptr; 
+  int i=0; 
+  TYPE2 v; 
+  
+  assert(s!=NULL && "Invalid input string"); 
+  
+  line = strtok(s,"\n"); 
+  while( line!=NULL && i<n ) { 
+    endptr = line; 
+    v = (TYPE2)(strtol(line, &endptr, 10)); 
+    if( (*endptr)!=(char)0 ) { 
+      fprintf(stderr, "Invalid input: line %d of section\n", i); 
+    } 
+    arr[i] = v; 
+    i++; 
+    line[strlen(line)] = '\n'; /* Undo the strtok replacement.*/ 
+    line = strtok(NULL,"\n"); 
+  } 
+  if(line!=NULL) { /* stopped because we read all the things */ 
+    line[strlen(line)] = '\n'; /* Undo the strtok replacement.*/ 
+  } 
+  
+  return 0; 
+}
+
+int parse_double_array(char *s, TYPE *arr, int n) { 
   char *line, *endptr; 
   int i=0; 
   TYPE v; 
@@ -57,7 +83,7 @@ int parse_int_array(char *s, TYPE *arr, int n) {
   line = strtok(s,"\n"); 
   while( line!=NULL && i<n ) { 
     endptr = line; 
-    v = (TYPE)(strtol(line, &endptr, 10)); 
+    v = (TYPE)(strtod(line, &endptr)); 
     if( (*endptr)!=(char)0 ) { 
       fprintf(stderr, "Invalid input: line %d of section\n", i); 
     } 
@@ -86,31 +112,17 @@ void run_benchmark() {
     p = readfile(in_fd);
     
     s = find_section_start(p,1);
-    parse_int_array(s, args.m1, N);
+    parse_double_array(s, args.nzval, N*L);
     
     s = find_section_start(p,2);
-    parse_int_array(s, args.m2, N);
+    parse_int_array(s, args.cols, N*L);
+    
+    s = find_section_start(p,3);
+    parse_double_array(s, args.vec, N);
     free(p);
 
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//            printf("%d- ",args.m1[i * row_size + j]);
-//            printf("%d, ",args.m2[i * row_size + j]);
-//            args.m1[i * row_size + j] = 1 + i * row_size + j;
-//            args.m2[i * row_size + j] = rand() / (N);
-            args.prod[i * row_size + j] = 0;
-        }
-//        printf("\n");
-    }
-//    printf("\n");
-    gemm( args.m1, args.m2, args.prod );
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//              printf("%d-", args.prod[i * row_size + j]);
-        }
-//        printf("\n");
-    }
-    printf("One example output is %d \n", args.prod[N-1]);
+    spmv( args.nzval, args.cols, args.vec, args.out );
+    printf("One example output is %f \n", args.out[N-1]);
 }
 
 int main () {

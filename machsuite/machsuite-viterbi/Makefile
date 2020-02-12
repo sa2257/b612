@@ -1,4 +1,4 @@
-KERNEL     = gemm
+KERNEL     = viterbi
 HW_SRCS    = $(KERNEL).c
 HOST_SRCS  = bench.c
 
