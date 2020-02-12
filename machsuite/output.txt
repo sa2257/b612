@@ -1,0 +1,406 @@
+clang -S -emit-llvm gemm.c > gemm.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll > gemm-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang gemm-prof.ll bench-prof.ll --output gemm
+./gemm
+One example output is 16.997562 
+
+
+instructionCounter: 9495558
+basicBlockCounter: 1008052
+addCounter: 1445960
+subCounter: 0
+mulCounter: 65536
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 1008051
+switchCounter: 0
+storeCounter: 958612
+loadCounter: 4042969
+otherCount: 1450129
+faddCounter: 262144
+fsubCounter: 0
+fmulCounter: 262144
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_double_array: 2
+strtok: 0
+_strtod: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 1
+_open: 0
+free: 0
+gemm: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm gemm.c > gemm.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll > gemm-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang gemm-prof.ll bench-prof.ll --output gemm
+./gemm
+One example output is 16.997562 
+
+
+instructionCounter: 8233876
+basicBlockCounter: 811396
+addCounter: 794688
+subCounter: 0
+mulCounter: 266240
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 811395
+switchCounter: 0
+storeCounter: 1069188
+loadCounter: 3440833
+otherCount: 1327233
+faddCounter: 262144
+fsubCounter: 0
+fmulCounter: 262144
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_double_array: 2
+strtok: 0
+_strtod: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 1
+_open: 0
+free: 0
+gemm: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm gemm.c > gemm.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll > gemm-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang gemm-prof.ll bench-prof.ll --output gemm
+./gemm
+One example output is 18585482 
+
+
+instructionCounter: 8233876
+basicBlockCounter: 811396
+addCounter: 1056832
+subCounter: 0
+mulCounter: 528384
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 811395
+switchCounter: 0
+storeCounter: 1069188
+loadCounter: 3440833
+otherCount: 1327233
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_int_array: 2
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 1
+_open: 0
+free: 0
+gemm: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm spmv.c > spmv.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll > spmv-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang spmv-prof.ll bench-prof.ll --output spmv
+./spmv
+One example output is 110.255820 
+
+
+instructionCounter: 66615
+basicBlockCounter: 7966
+addCounter: 2654
+subCounter: 0
+mulCounter: 0
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 7965
+switchCounter: 0
+storeCounter: 8462
+loadCounter: 28575
+otherCount: 15615
+faddCounter: 1666
+fsubCounter: 0
+fmulCounter: 1666
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 4
+parse_int_array: 2
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+parse_double_array: 2
+_strtod: 0
+run_benchmark: 1
+_open: 0
+free: 0
+spmv: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm spmv.c > spmv.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll > spmv-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang spmv-prof.ll bench-prof.ll --output spmv
+./spmv
+One example output is 110.255820 
+
+
+instructionCounter: 180823
+basicBlockCounter: 17788
+addCounter: 15314
+subCounter: 0
+mulCounter: 9880
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 17787
+switchCounter: 0
+storeCounter: 16801
+loadCounter: 73607
+otherCount: 37545
+faddCounter: 4940
+fsubCounter: 0
+fmulCounter: 4940
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 3
+parse_int_array: 1
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+parse_double_array: 2
+_strtod: 0
+run_benchmark: 1
+_open: 0
+free: 0
+spmv: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm stencil.c > stencil.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S stencil.ll > stencil-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang stencil-prof.ll bench-prof.ll --output stencil
+./stencil
+One example output is 32766 
+
+
+instructionCounter: 2907847
+basicBlockCounter: 399172
+addCounter: 461034
+subCounter: 0
+mulCounter: 218736
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 399171
+switchCounter: 0
+storeCounter: 289300
+loadCounter: 1109683
+otherCount: 429913
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_int_array: 2
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 1
+_open: 0
+free: 0
+stencil: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm stencil.c > stencil.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S stencil.ll > stencil-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang stencil-prof.ll bench-prof.ll --output stencil
+./stencil
+One example output is 841 
+
+
+instructionCounter: 1665514
+basicBlockCounter: 49621
+addCounter: 345650
+subCounter: 37800
+mulCounter: 239888
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 49620
+switchCounter: 0
+storeCounter: 83327
+loadCounter: 650742
+otherCount: 258476
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_int_array: 2
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 1
+_open: 0
+free: 0
+stencil: 1
+printf: 0
+main: 1
+rm bench.ll
+clang -S -emit-llvm viterbi.c > viterbi.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S viterbi.ll > viterbi-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang viterbi-prof.ll bench-prof.ll --output viterbi
+./viterbi
+One example output is 38 
+
+
+instructionCounter: 27868032
+basicBlockCounter: 2364332
+addCounter: 1735050
+subCounter: 569344
+mulCounter: 1147648
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 2364331
+switchCounter: 0
+storeCounter: 1216613
+loadCounter: 9846557
+otherCount: 9840827
+faddCounter: 1147648
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 4
+parse_uint8_t_array: 1
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+parse_double_array: 3
+_strtod: 0
+run_benchmark: 1
+_open: 0
+free: 0
+viterbi: 1
+printf: 0
+main: 1
+rm bench.ll
