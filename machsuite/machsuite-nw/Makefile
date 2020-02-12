@@ -1,4 +1,4 @@
-KERNEL     = gemm
+KERNEL     = nw
 HW_SRCS    = $(KERNEL).c
 HOST_SRCS  = bench.c
 
@@ -39,5 +39,5 @@ run: $(TARGET)
 
 .PHONY: clean
 clean:
-	rm $(LLVMS) $(PASSES) $(TARGET)
+	rm -f $(LLVMS) $(PASSES) $(TARGET)
 
