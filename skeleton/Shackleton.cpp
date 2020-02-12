@@ -41,7 +41,8 @@ namespace {
                                         "andCounter", "orCounter", "xorCounter",
                                         "branchCounter", "switchCounter",
                                         "storeCounter", "loadCounter",
-                                        "otherCount"
+                                        "otherCount",
+                                        "faddCounter", "fsubCounter", "fmulCounter", "fdivCounter", "fremCounter"
                                      }; //keep global variable names for profiling. e.g. instr counter
   };
 }
@@ -127,6 +128,11 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     int mul_instr = 0;
     int div_instr = 0;
     int rem_instr = 0;
+    int fadd_instr = 0;
+    int fsub_instr = 0;
+    int fmul_instr = 0;
+    int fdiv_instr = 0;
+    int frem_instr = 0;
     int and_instr = 0;
     int or_instr = 0;
     int xor_instr = 0;
@@ -155,6 +161,21 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
             case Instruction::URem: // remainder unsigned
             case Instruction::SRem: // remainder signed
                 rem_instr++;
+                continue;
+            case Instruction::FAdd: // fp addition
+                fadd_instr++;
+                continue;
+            case Instruction::FSub: // fp subtraction
+                fsub_instr++;
+                continue;
+            case Instruction::FMul: // fp multiplication
+                fmul_instr++;
+                continue;
+            case Instruction::FDiv: // fp division
+                fdiv_instr++;
+                continue;
+            case Instruction::FRem: // fp remainder
+                frem_instr++;
                 continue;
             case Instruction::And: // and
                 and_instr++;
@@ -204,6 +225,11 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     createInstr(bb, instrCounter[12], str_instr  , true);
     createInstr(bb, instrCounter[13], ld_instr   , true);
     createInstr(bb, instrCounter[14], other      , true);
+    createInstr(bb, instrCounter[15], fadd_instr , true);
+    createInstr(bb, instrCounter[16], fsub_instr , true);
+    createInstr(bb, instrCounter[17], fmul_instr , true);
+    createInstr(bb, instrCounter[18], fdiv_instr , true);
+    createInstr(bb, instrCounter[19], frem_instr , true);
     
     return true;
 }
