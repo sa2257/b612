@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include "gemm.h"
+#include "kmp.h"
 #include <unistd.h>
 #include <sys/stat.h>
 

@@ -148,6 +148,146 @@ gemm: 1
 printf: 0
 main: 1
 rm bench.ll
+./md
+One example output is 0.000000, 0.000000, 0.000000 
+
+
+instructionCounter: 2598200
+basicBlockCounter: 123084
+addCounter: 26678
+subCounter: 1092
+mulCounter: 0
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 123083
+switchCounter: 0
+storeCounter: 273906
+loadCounter: 942191
+otherCount: 906435
+faddCounter: 77330
+fsubCounter: 61864
+fmulCounter: 170126
+fdivCounter: 15466
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_int_array: 1
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+parse_double_array: 1
+_strtod: 0
+run_benchmark: 1
+_open: 0
+free: 0
+md: 1
+printf: 0
+main: 1
+clang -S -emit-llvm md.c > md.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S md.ll > md-prof.ll
+clang -S -emit-llvm bench.c > bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+/usr/local/opt/llvm/bin/clang md-prof.ll bench-prof.ll --output md
+./md
+One example output is -0.001265, -0.001275, 0.001524 
+
+
+instructionCounter: 398632
+basicBlockCounter: 13828
+addCounter: 8448
+subCounter: 0
+mulCounter: 4096
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 13827
+switchCounter: 0
+storeCounter: 64264
+loadCounter: 181505
+otherCount: 40449
+faddCounter: 20480
+fsubCounter: 16384
+fmulCounter: 45056
+fdivCounter: 4096
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 4
+parse_int_array: 1
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+parse_double_array: 3
+_strtod: 0
+run_benchmark: 1
+_open: 0
+free: 0
+md: 1
+printf: 0
+main: 1
+rm bench.ll
+./nw
+One example output is _, _ 
+
+
+instructionCounter: 1735374
+basicBlockCounter: 229538
+addCounter: 148807
+subCounter: 82176
+mulCounter: 33306
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 229537
+switchCounter: 0
+storeCounter: 166056
+loadCounter: 657721
+otherCount: 417752
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 1
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 2
+parse_string: 2
+__memcpy_chk: 0
+llvm.objectsize.i64.p0i8: 0
+run_benchmark: 1
+_open: 0
+free: 0
+nw: 1
+printf: 0
+main: 1
 clang -S -emit-llvm spmv.c > spmv.ll
 /usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll > spmv-prof.ll
 clang -S -emit-llvm bench.c > bench.ll

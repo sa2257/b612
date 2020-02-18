@@ -2,6 +2,9 @@ BENCHMARKS=\
 	machsuite-gemm-blocked \
 	machsuite-gemm-ncubed \
 	machsuite-gemm-ncubed-int \
+	machsuite-md-grid \
+	machsuite-md-knn \
+	machsuite-nw \
 	machsuite-spmv-crs \
 	machsuite-spmv-ellpack \
 	machsuite-stencil-stencil2d \
@@ -14,9 +17,6 @@ BENCHMARKS=\
 	machsuite-fft-strided \
 	machsuite-fft-transpose \
 	machsuite-kmp \
-	machsuite-md-grid \
-	machsuite-md-knn \
-	machsuite-nw \
 	machsuite-sort-merge \
 	machsuite-sort-radix \
 
