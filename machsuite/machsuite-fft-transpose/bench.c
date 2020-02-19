@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include "gemm.h"
+#include "fft.h"
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -47,7 +47,7 @@ char *find_section_start(char *s, int n) {
   return s; // Hit the end, return an empty string
 }
 
-int parse_int_array(char *s, TYPE *arr, int n) { 
+int parse_double_array(char *s, TYPE *arr, int n) { 
   char *line, *endptr; 
   int i=0; 
   TYPE v; 
@@ -57,7 +57,7 @@ int parse_int_array(char *s, TYPE *arr, int n) {
   line = strtok(s,"\n"); 
   while( line!=NULL && i<n ) { 
     endptr = line; 
-    v = (TYPE)(strtol(line, &endptr, 10)); 
+    v = (TYPE)(strtod(line, &endptr)); 
     if( (*endptr)!=(char)0 ) { 
       fprintf(stderr, "Invalid input: line %d of section\n", i); 
     } 
@@ -86,31 +86,14 @@ void run_benchmark() {
     p = readfile(in_fd);
     
     s = find_section_start(p,1);
-    parse_int_array(s, args.m1, N);
+    parse_double_array(s, args.work_x, 512);
     
     s = find_section_start(p,2);
-    parse_int_array(s, args.m2, N);
+    parse_double_array(s, args.work_y, 512);
     free(p);
-
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//            printf("%d- ",args.m1[i * row_size + j]);
-//            printf("%d, ",args.m2[i * row_size + j]);
-//            args.m1[i * row_size + j] = 1 + i * row_size + j;
-//            args.m2[i * row_size + j] = rand() / (N);
-            args.prod[i * row_size + j] = 0;
-        }
-//        printf("\n");
-    }
-//    printf("\n");
-    gemm( args.m1, args.m2, args.prod );
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//              printf("%d-", args.prod[i * row_size + j]);
-        }
-//        printf("\n");
-    }
-    printf("One example output is %d \n", args.prod[N-1]);
+    
+    fft( args.work_x, args.work_y );
+    printf("One example output is %f \n", args.work_x[511]);
 }
 
 int main () {

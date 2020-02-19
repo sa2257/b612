@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include "gemm.h"
+#include "bfs.h"
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -47,17 +47,17 @@ char *find_section_start(char *s, int n) {
   return s; // Hit the end, return an empty string
 }
 
-int parse_int_array(char *s, TYPE *arr, int n) { 
+int parse_uint64_t_array(char *s, uint64_t *arr, int n) { 
   char *line, *endptr; 
   int i=0; 
-  TYPE v; 
+  uint64_t v; 
   
   assert(s!=NULL && "Invalid input string"); 
   
   line = strtok(s,"\n"); 
   while( line!=NULL && i<n ) { 
     endptr = line; 
-    v = (TYPE)(strtol(line, &endptr, 10)); 
+    v = (uint64_t)(strtol(line, &endptr, 10)); 
     if( (*endptr)!=(char)0 ) { 
       fprintf(stderr, "Invalid input: line %d of section\n", i); 
     } 
@@ -86,31 +86,29 @@ void run_benchmark() {
     p = readfile(in_fd);
     
     s = find_section_start(p,1);
-    parse_int_array(s, args.m1, N);
+    parse_uint64_t_array(s, &args.starting_node, 1);
     
     s = find_section_start(p,2);
-    parse_int_array(s, args.m2, N);
+    uint64_t* nodes = (uint64_t *)malloc(N_NODES*2*sizeof(uint64_t));
+    parse_uint64_t_array(s, nodes, N_NODES*2);
+    for( int i = 0; i < N_NODES; i++) {
+      args.nodes[i].edge_begin = nodes[2*i];
+      args.nodes[i].edge_end = nodes[2*i+1];
+    }
+    free(nodes);
+
+    s = find_section_start(p,3);
+    uint64_t* edges = (uint64_t *)malloc(N_EDGES*1*sizeof(uint64_t));
+    parse_uint64_t_array(s, edges, N_EDGES*1);
+    for( int i = 0; i < N_EDGES; i++) {
+      args.edges[i].src = 0;
+      args.edges[i].dst = edges[i];
+    }
+    free(edges);
     free(p);
 
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//            printf("%d- ",args.m1[i * row_size + j]);
-//            printf("%d, ",args.m2[i * row_size + j]);
-//            args.m1[i * row_size + j] = 1 + i * row_size + j;
-//            args.m2[i * row_size + j] = rand() / (N);
-            args.prod[i * row_size + j] = 0;
-        }
-//        printf("\n");
-    }
-//    printf("\n");
-    gemm( args.m1, args.m2, args.prod );
-    for (int i = 0; i < row_size; i++) {
-        for (int j = 0; j < col_size; j++) {
-//              printf("%d-", args.prod[i * row_size + j]);
-        }
-//        printf("\n");
-    }
-    printf("One example output is %d \n", args.prod[N-1]);
+    bfs( args.nodes, args.edges, args.starting_node, args.level, args.level_counts );
+    printf("One example output is %llu \n", args.level_counts[N_LEVELS-1]);
 }
 
 int main () {

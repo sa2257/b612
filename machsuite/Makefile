@@ -1,4 +1,7 @@
 BENCHMARKS=\
+	machsuite-bfs-bulk \
+	machsuite-bfs-queue \
+	machsuite-fft-strided \
 	machsuite-gemm-blocked \
 	machsuite-gemm-ncubed \
 	machsuite-gemm-ncubed-int \
@@ -12,9 +15,6 @@ BENCHMARKS=\
 	machsuite-viterbi
 	#machsuite-aes \
 	machsuite-backprop \
-	machsuite-bfs-bulk \
-	machsuite-bfs-queue \
-	machsuite-fft-strided \
 	machsuite-fft-transpose \
 	machsuite-kmp \
 	machsuite-sort-merge \
