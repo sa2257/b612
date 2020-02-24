@@ -31,7 +31,7 @@ $(TARGET): $(PASSES)
 
 # Run profiler.
 .PHONY: run
-run: $(TARGET)
+profile: $(TARGET)
 	./$(TARGET)
 
 .PHONY: clean

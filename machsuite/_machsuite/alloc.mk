@@ -23,7 +23,7 @@ $(KERNEL)-alloc.ll: $(KERNEL).ll
 
 # Run allocator.
 .PHONY: run
-run: $(KERNEL)-alloc.ll
+alloc: $(KERNEL)-alloc.ll
 	continue
 
 .PHONY: clean

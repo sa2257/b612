@@ -2,4 +2,5 @@ KERNEL     = stencil
 HW_SRCS    = $(KERNEL).c
 HOST_SRCS  = bench.c
 
-include opt.mk
+include prof.mk
+include alloc.mk

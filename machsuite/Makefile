@@ -22,8 +22,11 @@ BENCHMARKS=\
 
 .PHONY: run clean
 
-run:
-	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b run; done )
+profile:
+	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b profile; done )
+
+allocate:
+	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b allocate; done )
 
 clean:
 	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b clean || exit ; done )
