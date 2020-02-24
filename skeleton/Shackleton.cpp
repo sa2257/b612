@@ -85,25 +85,18 @@ bool ShackletonPass::runOnFunction(Function &F, Module &M)
             modified |= runOnBasicBlock(*bb, M);
         }
         
-        if (bb==F.begin()){
-            Type *I64Ty = Type::getInt64Ty(M.getContext());
-            IRBuilder<> Builder(F.getContext());
-            Twine s = F.getName()+".glob";
-            Constant *atomicCounter = M.getOrInsertGlobal(s.str(), I64Ty);
-            Value *One = ConstantInt::get(Type::getInt64Ty(F.getContext()), 1);
-            
-            createInstr(*bb, atomicCounter, 1, false);
-            //new AtomicRMWInst(AtomicRMWInst::Add,
-            //                  atomicCounter,
-            //                  ConstantInt::get(Type::getInt64Ty(F.getContext()), 1),
-            //                  AtomicOrdering::SequentiallyConsistent,
-            //                  SyncScope::System, bb->getFirstNonPHI ());
-            modified |= true;                  
-        }
+        //if (bb==F.begin()){
+        //    Type *I64Ty = Type::getInt64Ty(M.getContext());
+        //    IRBuilder<> Builder(F.getContext());
+        //    Twine s = F.getName()+".glob";
+        //    Constant *atomicCounter = M.getOrInsertGlobal(s.str(), I64Ty);
+        //    Value *One = ConstantInt::get(Type::getInt64Ty(F.getContext()), 1);
+        //    
+        //    createInstr(*bb, atomicCounter, 1, false);
+        //    modified |= true;                  
+        //}
     }
 
-    //Value *result = Builder.CreateAdd(atomicCounter,One,"func_add");
-    
     return modified;
 }
 

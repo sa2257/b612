@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <string.h>
-#include "backprop.h"
+#include "bfs.h"
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -47,17 +47,17 @@ char *find_section_start(char *s, int n) {
   return s; // Hit the end, return an empty string
 }
 
-int parse_double_array(char *s, TYPE *arr, int n) { 
+int parse_uint64_t_array(char *s, uint64_t *arr, int n) { 
   char *line, *endptr; 
   int i=0; 
-  TYPE v; 
+  uint64_t v; 
   
   assert(s!=NULL && "Invalid input string"); 
   
   line = strtok(s,"\n"); 
   while( line!=NULL && i<n ) { 
     endptr = line; 
-    v = (TYPE)(strtod(line, &endptr)); 
+    v = (uint64_t)(strtol(line, &endptr, 10)); 
     if( (*endptr)!=(char)0 ) { 
       fprintf(stderr, "Invalid input: line %d of section\n", i); 
     } 
@@ -86,33 +86,29 @@ void run_benchmark() {
     p = readfile(in_fd);
     
     s = find_section_start(p,1);
-    parse_double_array(s, args.weights1, input_dimension * nodes_per_layer);
+    parse_uint64_t_array(s, &args.starting_node, 1);
     
     s = find_section_start(p,2);
-    parse_double_array(s, args.weights2, nodes_per_layer * nodes_per_layer);
-    
+    uint64_t* nodes = (uint64_t *)malloc(N_NODES*2*sizeof(uint64_t));
+    parse_uint64_t_array(s, nodes, N_NODES*2);
+    for( int i = 0; i < N_NODES; i++) {
+      args.nodes[i].edge_begin = nodes[2*i];
+      args.nodes[i].edge_end = nodes[2*i+1];
+    }
+    free(nodes);
+
     s = find_section_start(p,3);
-    parse_double_array(s, args.weights3, nodes_per_layer * possible_outputs);
-    
-    s = find_section_start(p,4);
-    parse_double_array(s, args.biases1, nodes_per_layer);
-    
-    s = find_section_start(p,5);
-    parse_double_array(s, args.biases2, nodes_per_layer);
-    
-    s = find_section_start(p,6);
-    parse_double_array(s, args.biases3, possible_outputs);
-    
-    s = find_section_start(p,7);
-    parse_double_array(s, args.training_data, training_sets * input_dimension);
-    
-    s = find_section_start(p,8);
-    parse_double_array(s, args.training_targets, training_sets * possible_outputs);
-    
+    uint64_t* edges = (uint64_t *)malloc(N_EDGES*1*sizeof(uint64_t));
+    parse_uint64_t_array(s, edges, N_EDGES*1);
+    for( int i = 0; i < N_EDGES; i++) {
+      args.edges[i].src = 0;
+      args.edges[i].dst = edges[i];
+    }
+    free(edges);
     free(p);
 
-    backprop( args.weights1, args.weights2, args.weights3, args.biases1, args.biases2, args.biases3, args.training_data, args.training_targets );
-    printf("One example output is %f \n", args.biases3[possible_outputs-1]);
+    bfs( args.nodes, args.edges, args.starting_node, args.level, args.level_counts );
+    printf("One example output is %llu \n", args.level_counts[N_LEVELS-1]);
 }
 
 int main () {

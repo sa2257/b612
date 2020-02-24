@@ -2,5 +2,5 @@ KERNEL     = aes
 HW_SRCS    = $(KERNEL).c
 HOST_SRCS  = bench.c
 
-include profile.mk
+include prof.mk
 include alloc.mk

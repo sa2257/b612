@@ -1,7 +1,216 @@
-clang -S -emit-llvm gemm.c > gemm.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll > gemm-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  aes.c -o aes.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S aes.ll -o aes-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang aes-prof.ll bench-prof.ll --output aes
+./aes
+One example output is Ž¢·ÊQgE¿êüIKI`‰ 
+
+
+instructionCounter: 32121
+basicBlockCounter: 2425
+addCounter: 1278
+subCounter: 336
+mulCounter: 14
+divCounter: 0
+remCounter: 0
+andCounter: 235
+orCounter: 0
+xorCounter: 1602
+branchCounter: 2146
+switchCounter: 0
+storeCounter: 2784
+loadCounter: 9855
+otherCount: 12850
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_uint8_t_array: 0
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 0
+_open: 0
+free: 0
+aes: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  backprop.c -o backprop.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S backprop.ll -o backprop-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang backprop-prof.ll bench-prof.ll --output backprop
+./backprop
+rm bench.ll
+clang -S -emit-llvm -o3  bfs.c -o bfs.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S bfs.ll -o bfs-prof.ll
+clang -S -emit-llvm -o3  bfs.c -o bfs.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S bfs.ll -o bfs-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang bfs-prof.ll bench-prof.ll --output bfs
+./bfs
+One example output is 140732810336856 
+
+
+instructionCounter: 4730
+basicBlockCounter: 776
+addCounter: 211
+subCounter: 6
+mulCounter: 0
+divCounter: 0
+remCounter: 12
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 775
+switchCounter: 0
+storeCounter: 601
+loadCounter: 1945
+otherCount: 1163
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_uint64_t_array: 0
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 0
+_open: 0
+free: 0
+bfs: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  fft.c -o fft.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S fft.ll -o fft-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang fft-prof.ll bench-prof.ll --output fft
+./fft
+One example output is -9.064352 
+
+
+instructionCounter: 712965
+basicBlockCounter: 24641
+addCounter: 5130
+subCounter: 0
+mulCounter: 0
+divCounter: 0
+remCounter: 0
+andCounter: 5120
+orCounter: 5120
+xorCounter: 5120
+branchCounter: 24640
+switchCounter: 0
+storeCounter: 63527
+loadCounter: 339024
+otherCount: 220211
+faddCounter: 14337
+fsubCounter: 14337
+fmulCounter: 16388
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_double_array: 0
+strtok: 0
+_strtod: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 0
+_open: 0
+free: 0
+fft: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  fft.c -o fft.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S fft.ll -o fft-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang fft-prof.ll bench-prof.ll --output fft
+./fft
+One example output is 3.568403 
+
+
+instructionCounter: 296651
+basicBlockCounter: 5474
+addCounter: 17024
+subCounter: 0
+mulCounter: 15872
+divCounter: 0
+remCounter: 0
+andCounter: 512
+orCounter: 0
+xorCounter: 0
+branchCounter: 5217
+switchCounter: 0
+storeCounter: 40532
+loadCounter: 100363
+otherCount: 88972
+faddCounter: 6080
+fsubCounter: 6848
+fmulCounter: 9984
+fdivCounter: 896
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_double_array: 0
+strtok: 0
+_strtod: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 0
+_open: 0
+free: 0
+fft: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  gemm.c -o gemm.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll -o gemm-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang gemm-prof.ll bench-prof.ll --output gemm
 ./gemm
 One example output is 16.997562 
@@ -29,29 +238,29 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_double_array: 2
+find_section_start: 0
+parse_double_array: 0
 strtok: 0
 _strtod: 0
 fprintf: 0
 strlen: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-gemm: 1
+gemm: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
-clang -S -emit-llvm gemm.c > gemm.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll > gemm-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  gemm.c -o gemm.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll -o gemm-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang gemm-prof.ll bench-prof.ll --output gemm
 ./gemm
 One example output is 16.997562 
@@ -79,29 +288,29 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_double_array: 2
+find_section_start: 0
+parse_double_array: 0
 strtok: 0
 _strtod: 0
 fprintf: 0
 strlen: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-gemm: 1
+gemm: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
-clang -S -emit-llvm gemm.c > gemm.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll > gemm-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  gemm.c -o gemm.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S gemm.ll -o gemm-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang gemm-prof.ll bench-prof.ll --output gemm
 ./gemm
 One example output is 18585482 
@@ -129,25 +338,78 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_int_array: 2
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-gemm: 1
+gemm: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
+clang -S -emit-llvm -o3  kmp.c -o kmp.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S kmp.ll -o kmp-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang kmp-prof.ll bench-prof.ll --output kmp
+./kmp
+One example output is 12 
+
+
+instructionCounter: 1051866
+basicBlockCounter: 294081
+addCounter: 32944
+subCounter: 12
+mulCounter: 0
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 294079
+switchCounter: 0
+storeCounter: 33409
+loadCounter: 329518
+otherCount: 361891
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_string: 0
+__memcpy_chk: 0
+llvm.objectsize.i64.p0i8: 0
+run_benchmark: 0
+_open: 0
+free: 0
+kmp: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  md.c -o md.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S md.ll -o md-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang md-prof.ll bench-prof.ll --output md
 ./md
 One example output is 0.000000, 0.000000, 0.000000 
 
@@ -174,30 +436,31 @@ fdivCounter: 15466
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_int_array: 1
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-parse_double_array: 1
+parse_double_array: 0
 _strtod: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-md: 1
+md: 0
 printf: 0
-main: 1
-clang -S -emit-llvm md.c > md.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S md.ll > md-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  md.c -o md.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S md.ll -o md-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang md-prof.ll bench-prof.ll --output md
 ./md
 One example output is -0.001265, -0.001275, 0.001524 
@@ -225,27 +488,32 @@ fdivCounter: 4096
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 4
-parse_int_array: 1
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-parse_double_array: 3
+parse_double_array: 0
 _strtod: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-md: 1
+md: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
+clang -S -emit-llvm -o3  nw.c -o nw.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S nw.ll -o nw-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang nw-prof.ll bench-prof.ll --output nw
 ./nw
 One example output is _, _ 
 
@@ -272,26 +540,126 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_string: 2
+find_section_start: 0
+parse_string: 0
 __memcpy_chk: 0
 llvm.objectsize.i64.p0i8: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-nw: 1
+nw: 0
 printf: 0
-main: 1
-clang -S -emit-llvm spmv.c > spmv.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll > spmv-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  sort.c -o sort.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S sort.ll -o sort-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang sort-prof.ll bench-prof.ll --output sort
+./sort
+One example output is 2147208091 
+
+
+instructionCounter: 1369249
+basicBlockCounter: 210999
+addCounter: 102405
+subCounter: 15370
+mulCounter: 0
+divCounter: 0
+remCounter: 0
+andCounter: 0
+orCounter: 0
+xorCounter: 0
+branchCounter: 208951
+switchCounter: 0
+storeCounter: 184333
+loadCounter: 530495
+otherCount: 303122
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_int_array: 0
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 0
+_open: 0
+sort: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  sort.c -o sort.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S sort.ll -o sort-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
+/usr/local/opt/llvm/bin/clang sort-prof.ll bench-prof.ll --output sort
+./sort
+One example output is 2147208091 
+
+
+instructionCounter: 5209635
+basicBlockCounter: 614852
+addCounter: 575472
+subCounter: 34784
+mulCounter: 229360
+divCounter: 0
+remCounter: 0
+andCounter: 65536
+orCounter: 0
+xorCounter: 0
+branchCounter: 614755
+switchCounter: 0
+storeCounter: 598359
+loadCounter: 1964241
+otherCount: 1126449
+faddCounter: 0
+fsubCounter: 0
+fmulCounter: 0
+fdivCounter: 0
+fremCounter: 0
+
+
+readfile: 0
+__assert_rtn: 0
+_fstat$INODE64: 0
+malloc: 0
+_read: 0
+_close: 0
+find_section_start: 0
+parse_int_array: 0
+strtok: 0
+strtol: 0
+fprintf: 0
+strlen: 0
+run_benchmark: 0
+_open: 0
+free: 0
+sort: 0
+printf: 0
+main: 0
+rm bench.ll
+clang -S -emit-llvm -o3  spmv.c -o spmv.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll -o spmv-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang spmv-prof.ll bench-prof.ll --output spmv
 ./spmv
 One example output is 110.255820 
@@ -319,31 +687,31 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 4
-parse_int_array: 2
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-parse_double_array: 2
+parse_double_array: 0
 _strtod: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-spmv: 1
+spmv: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
-clang -S -emit-llvm spmv.c > spmv.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll > spmv-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  spmv.c -o spmv.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S spmv.ll -o spmv-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang spmv-prof.ll bench-prof.ll --output spmv
 ./spmv
 One example output is 110.255820 
@@ -371,31 +739,31 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 3
-parse_int_array: 1
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-parse_double_array: 2
+parse_double_array: 0
 _strtod: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-spmv: 1
+spmv: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
-clang -S -emit-llvm stencil.c > stencil.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S stencil.ll > stencil-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  stencil.c -o stencil.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S stencil.ll -o stencil-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang stencil-prof.ll bench-prof.ll --output stencil
 ./stencil
 One example output is 32766 
@@ -423,29 +791,29 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_int_array: 2
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-stencil: 1
+stencil: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
-clang -S -emit-llvm stencil.c > stencil.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S stencil.ll > stencil-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  stencil.c -o stencil.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S stencil.ll -o stencil-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang stencil-prof.ll bench-prof.ll --output stencil
 ./stencil
 One example output is 841 
@@ -473,29 +841,29 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 2
-parse_int_array: 2
+find_section_start: 0
+parse_int_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-stencil: 1
+stencil: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
-clang -S -emit-llvm viterbi.c > viterbi.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S viterbi.ll > viterbi-prof.ll
-clang -S -emit-llvm bench.c > bench.ll
-/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll > bench-prof.ll
+clang -S -emit-llvm -o3  viterbi.c -o viterbi.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -select -S viterbi.ll -o viterbi-prof.ll
+clang -S -emit-llvm -o3  bench.c -o bench.ll
+/usr/local/opt/llvm/bin/opt -load ../../build/skeleton/libShackletonPass.so --shackleton -S bench.ll -o bench-prof.ll
 /usr/local/opt/llvm/bin/clang viterbi-prof.ll bench-prof.ll --output viterbi
 ./viterbi
 One example output is 38 
@@ -523,24 +891,24 @@ fdivCounter: 0
 fremCounter: 0
 
 
-readfile: 1
+readfile: 0
 __assert_rtn: 0
 _fstat$INODE64: 0
 malloc: 0
 _read: 0
 _close: 0
-find_section_start: 4
-parse_uint8_t_array: 1
+find_section_start: 0
+parse_uint8_t_array: 0
 strtok: 0
 strtol: 0
 fprintf: 0
 strlen: 0
-parse_double_array: 3
+parse_double_array: 0
 _strtod: 0
-run_benchmark: 1
+run_benchmark: 0
 _open: 0
 free: 0
-viterbi: 1
+viterbi: 0
 printf: 0
-main: 1
+main: 0
 rm bench.ll
