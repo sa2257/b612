@@ -13,20 +13,21 @@ CXX       := clang
 OPT       := /usr/local/opt/llvm/bin/opt
 ASMFLAG   := -S
 LLVMFLAG  := -emit-llvm
+CXXFLAGS  := -o3 
 OPTFLAGS  := -load ../../build/skeleton/libShackletonPass.so --shackleton
 PASSFLAGS := -select
 
 # Create assembly.
 %.ll: %.c
-	$(CXX) $(ASMFLAG) $(LLVMFLAG) $^ > $@
+	$(CXX) $(ASMFLAG) $(LLVMFLAG) $(CXXFLAGS) $^ -o $@
 
 # Run pass on kernel.
 $(KERNEL)-prof.ll: $(KERNEL).ll
-	$(OPT) $(OPTFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ > $@
+	$(OPT) $(OPTFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ -o $@
 
 # Run pass on main.
 %-prof.ll: %.ll
-	$(OPT) $(OPTFLAGS) $(ASMFLAG) $^ > $@
+	$(OPT) $(OPTFLAGS) $(ASMFLAG) $^ -o $@
 
 # Link the program.
 $(TARGET): $(PASSES)
