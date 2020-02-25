@@ -36,7 +36,7 @@ namespace {
       bool finialize(Module &M); //print global variable
       void createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc);
 
-      int d_ratio = 1; int m_ratio = 1; int a_ratio = 3; int l_ratio = 4;
+      int d_ratio = 1; int m_ratio = 2; int a_ratio = 3; int l_ratio = 3;
       int f_ratio = 0; int i_ratio = 1;
       int dmal_total = d_ratio + m_ratio + a_ratio + l_ratio;
       int fi_total = f_ratio + i_ratio;
@@ -99,8 +99,7 @@ bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     int fmul_pes = pe_len * pe_len * m_ratio * f_ratio / dmal_total / fi_total;
     int fari_pes = pe_len * pe_len * a_ratio * f_ratio / dmal_total / fi_total;
     int logi_pes = pe_len * pe_len * l_ratio / dmal_total;
-    int ld_units = 5 * 4 + (pe_len - 2) * 4 * 3;
-    int st_units = 5 * 4 + (pe_len - 2) * 4 * 3;
+    int mem_units = (pe_len + 1) * (pe_len + 1);
     int other = 0;
     bool idiv = idiv_pes > 0 ? true : false; bool fdiv = fdiv_pes > 0 ? true : false;
     bool imul = imul_pes > 0 ? true : false; bool fmul = fdiv_pes > 0 ? true : false;
@@ -151,18 +150,31 @@ bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
             case Instruction::Xor: // xor
                 logi_pes--;
                 continue;
+            case Instruction::Trunc: // truncate
+                logi_pes--;
+                continue;
+            case Instruction::ZExt: // zero extend
+                logi_pes--;
+                continue;
+            case Instruction::SExt: // sign extend
+                logi_pes--;
+                continue;
+            case Instruction::ICmp: // integer compare
+                logi_pes--;
+                continue;
             case Instruction::Br: // branch
                 continue;
             case Instruction::Switch: // switch
                 continue;
             case Instruction::Store: // store
-                st_units--;
+                mem_units--;
                 continue;
             case Instruction::Load: // load
-                ld_units--;
+                mem_units--;
                 continue;
-            case Instruction::Alloca: // allocate stack memory
-                ld_units--;
+            case Instruction::Alloca: // Ignore allocate stack
+                continue;
+            case Instruction::GetElementPtr: // Ignore get address
                 continue;
             case Instruction::Ret: // Ignore return
                 continue;
@@ -200,12 +212,8 @@ bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
             errs() << "Can't map bb, out of logi resources!" << "\n";
             fail = true;
             break;
-        } else if(ld_units == 0) {
-            errs() << "Can't map bb, out of load slots!" << "\n";
-            fail = true;
-            break;
-        } else if(st_units == 0) {
-            errs() << "Can't map bb, out of store slots!" << "\n";
+        } else if(mem_units == 0) {
+            errs() << "Can't map bb, out of registers!" << "\n";
             fail = true;
             break;
         }
@@ -219,13 +227,12 @@ bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     fmul_pes = pe_len * pe_len * m_ratio * f_ratio / dmal_total / fi_total - fmul_pes;
     fari_pes = pe_len * pe_len * a_ratio * f_ratio / dmal_total / fi_total - fari_pes;
     logi_pes = pe_len * pe_len * l_ratio / dmal_total - logi_pes;
-    ld_units = 5 * 4 + (pe_len - 2) * 4 * 3 - ld_units;
-    st_units = 5 * 4 + (pe_len - 2) * 4 * 3 - st_units;
+    mem_units = (pe_len + 1) * (pe_len + 1) - mem_units;
     if (!fail) {
         errs() << "Basic block can be mapped with " << 
             idiv_pes << "," << imul_pes << "," << iari_pes << "," <<
             fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
-            logi_pes << "," << ld_units << "," << st_units << "\n" ;
+            logi_pes << "," << mem_units << "\n" ;
     }
     
     return true;
