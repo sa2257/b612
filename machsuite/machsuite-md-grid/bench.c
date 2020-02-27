@@ -47,17 +47,17 @@ char *find_section_start(char *s, int n) {
   return s; // Hit the end, return an empty string
 }
 
-int parse_int_array(char *s, int *arr, int n) { 
+int parse_int_array(char *s, int32_t *arr, int n) { 
   char *line, *endptr; 
   int i=0; 
-  int v; 
+  int32_t v; 
   
   assert(s!=NULL && "Invalid input string"); 
   
   line = strtok(s,"\n"); 
   while( line!=NULL && i<n ) { 
     endptr = line; 
-    v = (int)(strtol(line, &endptr, 10)); 
+    v = (int32_t)(strtol(line, &endptr, 10)); 
     if( (*endptr)!=(char)0 ) { 
       fprintf(stderr, "Invalid input: line %d of section\n", i); 
     } 
@@ -112,16 +112,16 @@ void run_benchmark() {
     p = readfile(in_fd);
     
     s = find_section_start(p,1);
-    parse_int_array(s, (int *)args.n_points, blockSide * blockSide * blockSide);
+    parse_int_array(s, (int32_t *)args.n_points, blockSide * blockSide * blockSide);
     
     s = find_section_start(p,2);
     dvector_t *position;
     position = (dvector_t *)malloc(nBlocks * densityFactor * sizeof(dvector_t));
-    parse_double_array(s, (double *) position, 3 * blockSide * blockSide * blockSide * densityFactor);
+    parse_double_array(s, (double *)position, 3 * blockSide * blockSide * blockSide * densityFactor);
     for (int i=0; i< blockSide; i++){
     for (int j=0; j< blockSide; j++){
     for (int k=0; k< blockSide; k++){
-        for (int l=0; l< blockSide; l++){
+        for (int l=0; l< densityFactor; l++){
             args.position_x[i][j][k][l] = position[(i * blockSide * blockSide + j * blockSide + k) * densityFactor + l].x;
             args.position_y[i][j][k][l] = position[(i * blockSide * blockSide + j * blockSide + k) * densityFactor + l].y;
             args.position_z[i][j][k][l] = position[(i * blockSide * blockSide + j * blockSide + k) * densityFactor + l].z;
@@ -131,7 +131,7 @@ void run_benchmark() {
     }
     free(position);
     free(p);
-
+    
     md( args.n_points, args.force_x, args.force_y, args.force_z, args.position_x, args.position_y, args.position_z );
     printf("One example output is %f, %f, %f \n", args.force_x[blockSide-1][blockSide-1][blockSide-1][densityFactor-1]
                                         , args.force_y[blockSide-1][blockSide-1][blockSide-1][densityFactor-1]
