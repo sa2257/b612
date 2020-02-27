@@ -84,17 +84,6 @@ bool ShackletonPass::runOnFunction(Function &F, Module &M)
         if (SwitchOn || funcName == InputModule) {
             modified |= runOnBasicBlock(*bb, M);
         }
-        
-        //if (bb==F.begin()){
-        //    Type *I64Ty = Type::getInt64Ty(M.getContext());
-        //    IRBuilder<> Builder(F.getContext());
-        //    Twine s = F.getName()+".glob";
-        //    Constant *atomicCounter = M.getOrInsertGlobal(s.str(), I64Ty);
-        //    Value *One = ConstantInt::get(Type::getInt64Ty(F.getContext()), 1);
-        //    
-        //    createInstr(*bb, atomicCounter, 1, false);
-        //    modified |= true;                  
-        //}
     }
 
     return modified;
@@ -297,24 +286,6 @@ bool ShackletonPass::finialize(Module &M){
                 argVec.push_back(format_empty);
                 CallInst::Create(printF, argVec, "printf", &*it); //create printf function for a new line
                 
-                Value *format_long;
-                
-                auto &functionList = M.getFunctionList(); // gets the list of functions
-                Type *I64Ty = Type::getInt64Ty(M.getContext());
-                for (auto &function : functionList) { //iterates over the list
-                    
-                    format_long = Builder.CreateGlobalStringPtr(function.getName().str()+": %ld\n", "formatLong"); // create a global variable, name it based on the function name
-                    std::vector<Value *> argVec;
-                    argVec.push_back(format_long);
-                    Twine s = function.getName()+".glob";
-                    Value *atomicCounter = M.getGlobalVariable(s.str(),I64Ty);
-
-                    Value* finalVal = new LoadInst(atomicCounter, function.getName()+".val", &*it);
-                    
-                    argVec.push_back(finalVal);
-                    CallInst::Create(printF, argVec, "printf", &*it);
-                }
-
             }
         }
     }
