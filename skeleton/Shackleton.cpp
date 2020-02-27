@@ -248,41 +248,49 @@ bool ShackletonPass::finialize(Module &M){
     // not the main module
     if (!mainFunc)
         return false;
+    
     // Build printf function handle
     std::vector<Type *> FTyArgs;
     FTyArgs.push_back(Type::getInt8PtrTy(M.getContext())); // specify the first argument, i8* is the return type of CreateGlobalStringPtr
-    FunctionType *FTy = FunctionType::get(Type::getInt32Ty(M.getContext()), FTyArgs, true); // create function type with return type, argument types and if const argument
+    FunctionType *FTy = FunctionType::get(Type::getInt32Ty(M.getContext()), FTyArgs, true); 
+    // create function type with return type, argument types and if const argument
     FunctionCallee printF = M.getOrInsertFunction("printf", FTy); // create function if not extern or defined
     
     //assert(printF != NULL);
     
     for (auto bb = mainFunc->begin(); bb != mainFunc->end(); bb++) {
         for(auto it = bb->begin(); it != bb->end(); it++) {
+            
             // insert at the end of main function
             if ((std::string)it->getOpcodeName() == "ret") {
-                 // insert printf at the end of main function, before return function
+                
+                // insert printf at the end of main function, before return function
                 Builder.SetInsertPoint(&*bb, it);
-                for(int i = 0; i < atomicCounter.size(); i++){
+                Value *format_empty;
+                format_empty = Builder.CreateGlobalStringPtr("\n", "formatEmpty"); // create empty string
+                std::vector<Value *> argVec;
+                argVec.push_back(format_empty);
+                CallInst::Create(printF, argVec, "printf", &*it); //create printf function for a new line
+                
+                for(int i = 0; i < atomicCounter.size(); i++) {
+                    
                     // Build Arguments
                     Value *format_long;
-                    if (i == 0){
-                    format_long = Builder.CreateGlobalStringPtr("\n\n"+atomicCounter[i]+": %ld\n", "formatLong"); // create global string variable formatLong, add suffix(.1/.2/...) if already exists
-                    }else{
-                        format_long = Builder.CreateGlobalStringPtr(atomicCounter[i]+": %ld\n", "formatLong");
-                    }
+                    //format_long = Builder.CreateGlobalStringPtr(atomicCounter[i] + ", %ld\n", "formatLong"); 
+                    format_long = Builder.CreateGlobalStringPtr("%ld,", "formatLong"); 
+                    // create global string variable formatLong, add suffix(.1/.2/...) if already exists
+                    Value* atomic_counter = M.getGlobalVariable(atomicCounter[i]); // get pointer pointing to the global variable name
+                    Value* finalVal = new LoadInst(atomic_counter, atomic_counter->getName()+".val", &*it); 
+                    // atomic_counter only points to a string, but we want to print the number the string stores
+                    
                     std::vector<Value *> argVec;
                     argVec.push_back(format_long);
-                    
-                    Value *atomic_counter = M.getGlobalVariable(atomicCounter[i]); // get pointer pointing to the global variable name
-                    Value* finalVal = new LoadInst(atomic_counter, atomic_counter->getName()+".val", &*it); // atomic_counter only points to a string, but we want to print the number the string stores
                     argVec.push_back(finalVal);
-                    CallInst::Create(printF, argVec, "printf", &*it); //create printf function with the return value name called printf (with suffix if already exists)
+                    CallInst::Create(printF, argVec, "printf", &*it); 
+                    //create printf function with the return value name called printf (with suffix if already exists)
                     
                 }
                 
-                Value *format_empty;
-                format_empty = Builder.CreateGlobalStringPtr("\n\n", "formatEmpty"); // create empty string
-                std::vector<Value *> argVec;
                 argVec.push_back(format_empty);
                 CallInst::Create(printF, argVec, "printf", &*it); //create printf function for a new line
                 
