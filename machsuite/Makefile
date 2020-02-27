@@ -20,10 +20,16 @@ BENCHMARKS=\
 	machsuite-stencil-stencil3d \
 	machsuite-viterbi
 
-.PHONY: profile allocate clean
+.PHONY: simple profile time allocate clean
+
+simple:
+	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b simple; done )
 
 profile:
 	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b profile; done )
+
+time:
+	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b time; done )
 
 allocate:
 	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b allocate; done )

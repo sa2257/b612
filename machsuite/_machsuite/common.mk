@@ -4,6 +4,7 @@ PROFPASS  := $(SOURCES:%.c=%-prof.ll)
 ALLCPASS  := $(SOURCES:%.c=%-alloc.ll)
 PASSES    := $(PROFPASS) $(ALLCPASS)
 TARGET    := $(KERNEL)
+SIMPLE    := exe
 
 # Ordinary Clang options.
 CXX+      := /usr/local/opt/llvm/bin/clang
@@ -36,9 +37,23 @@ $(KERNEL)-alloc.ll: $(KERNEL).ll
 $(TARGET): $(PROFPASS)
 	$(CXX+) $^ --output $@
 
+# Link the program.
+$(SIMPLE): $(LLVMS)
+	$(CXX+) $^ --output $@
+
+# Run without pass.
+.PHONY: simple
+simple: $(SIMPLE)
+	./$(SIMPLE)
+
 # Run profiler.
 .PHONY: profile
 profile: $(TARGET)
+	./$(TARGET)
+
+# Run profiler with timer.
+.PHONY: time
+time: $(TARGET)
 	time ./$(TARGET)
 
 # Run allocator.
@@ -48,5 +63,5 @@ allocate: $(KERNEL)-alloc.ll
 
 .PHONY: clean
 clean:
-	rm -f $(LLVMS) $(PASSES) $(TARGET)
+	rm -f $(LLVMS) $(PASSES) $(TARGET) $(SIMPLE)
 
