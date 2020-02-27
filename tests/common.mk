@@ -2,7 +2,8 @@ SOURCES   := $(HW_SRCS) $(HOST_SRCS)
 LLVMS     := $(SOURCES:%.c=%.ll)
 PROFPASS  := $(SOURCES:%.c=%-prof.ll)
 ALLCPASS  := $(SOURCES:%.c=%-alloc.ll)
-PASSES    := $(PROFPASS) $(ALLCPASS)
+DEPGPASS  := $(SOURCES:%.c=%-depg.ll)
+PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPGPASS)
 TARGET    := $(KERNEL)
 
 # Ordinary Clang options.
@@ -11,14 +12,15 @@ CXX       := clang
 OPT       := /usr/local/opt/llvm/bin/opt
 ASMFLAG   := -S
 LLVMFLAG  := -emit-llvm
-CXXFLAGS  := -O3
+CXXFLAGS  := -o3 
 PROFFLAGS  := -load ../../build/skeleton/libShackletonPass.so --shackleton
 ALLCFLAGS  := -load ../../build/skeleton/libStiltonPass.so --stilton
+DEPGFLAGS  := -load ../../build/skeleton/libSheltonPass.so --shelton
 PASSFLAGS := -select
 
 # Create assembly.
 %.ll: %.c
-	$(CXX) $(CXXFLAGS) $^ $(ASMFLAG) $(LLVMFLAG) -o $@
+	$(CXX) $(ASMFLAG) $(LLVMFLAG) $(CXXFLAGS) $^ -o $@
 
 # Run profile pass on kernel.
 $(KERNEL)-prof.ll: $(KERNEL).ll
@@ -32,6 +34,10 @@ $(KERNEL)-prof.ll: $(KERNEL).ll
 $(KERNEL)-alloc.ll: $(KERNEL).ll
 	$(OPT) $(ALLCFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ -o $@
 
+# Run depggen pass on kernel.
+$(KERNEL)-depg.ll: $(KERNEL).ll
+	$(OPT) $(DEPGFLAGS) $(ASMFLAG) $^ -o $@
+
 # Link the program.
 $(TARGET): $(PROFPASS)
 	$(CXX+) $^ --output $@
@@ -39,11 +45,16 @@ $(TARGET): $(PROFPASS)
 # Run profiler.
 .PHONY: profile
 profile: $(TARGET)
-	time ./$(TARGET)
+	./$(TARGET)
 
 # Run allocator.
 .PHONY: allocate
 allocate: $(KERNEL)-alloc.ll
+	continue
+
+# Run dependence graph generator.
+.PHONY: depggen
+depggen: $(KERNEL)-depg.ll
 	continue
 
 .PHONY: clean
