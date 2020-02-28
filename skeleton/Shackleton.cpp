@@ -37,12 +37,14 @@ namespace {
       void createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc);
       
       vector<string> atomicCounter = {  "instructionCounter", "basicBlockCounter", 
-                                        "addCounter", "subCounter", "mulCounter", "divCounter", "remCounter",
-                                        "andCounter", "orCounter", "xorCounter",
                                         "branchCounter", "switchCounter",
-                                        "storeCounter", "loadCounter",
-                                        "otherCount",
-                                        "faddCounter", "fsubCounter", "fmulCounter", "fdivCounter", "fremCounter"
+                                        "addCounter", "subCounter", "mulCounter", "divCounter", "remCounter",
+                                        "faddCounter", "fsubCounter", "fmulCounter", "fdivCounter", "fremCounter",
+                                        "fnegCounter", "andCounter", "orCounter", "xorCounter",
+                                        "shiftCounter", "intCompCounter", "fpCompCounter", "phiCounter",
+                                        "intConvCounter", "fpConvCounter", "typeConvCounter", "otherConvCounter",
+                                        "loadCounter", "storeCounter", 
+                                        "otherCount"
                                      }; //keep global variable names for profiling. e.g. instr counter
   };
 }
@@ -115,6 +117,7 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     int fmul_instr = 0;
     int fdiv_instr = 0;
     int frem_instr = 0;
+    int fneg_instr = 0;
     int and_instr = 0;
     int or_instr = 0;
     int xor_instr = 0;
@@ -122,39 +125,58 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     int sw_instr = 0;
     int str_instr = 0;
     int ld_instr = 0;
+    int icmp_instr = 0;
+    int fcmp_instr = 0;
+    int phi_instr = 0;
+    int shift_instr = 0;
+    int iconv_instr = 0;
+    int fconv_instr = 0;
+    int tconv_instr = 0;
+    int oconv_instr = 0;
     int other = 0;
     
     instr += bb.size(); // this includes atomicrmws introduced by this pass
     for (auto it = bb.begin(); it != bb.end(); it++) {
         switch (it->getOpcode()) {
+            case Instruction::Ret: // return
+                continue;
+            case Instruction::Br: // branch
+                br_instr++;
+                continue;
+            case Instruction::Switch: // switch
+                sw_instr++;
+                continue;
+            case Instruction::FNeg: // fp negation
+                fneg_instr++;
+                continue;
             case Instruction::Add: // addition
                 add_instr++;
+                continue;
+            case Instruction::FAdd: // fp addition
+                fadd_instr++;
                 continue;
             case Instruction::Sub: // subtraction
                 sub_instr++;
                 continue;
+            case Instruction::FSub: // fp subtraction
+                fsub_instr++;
+                continue;
             case Instruction::Mul: // multiplication
                 mul_instr++;
+                continue;
+            case Instruction::FMul: // fp multiplication
+                fmul_instr++;
                 continue;
             case Instruction::UDiv: // division unsigned
             case Instruction::SDiv: // division signed
                 div_instr++;
                 continue;
+            case Instruction::FDiv: // fp division
+                fdiv_instr++;
+                continue;
             case Instruction::URem: // remainder unsigned
             case Instruction::SRem: // remainder signed
                 rem_instr++;
-                continue;
-            case Instruction::FAdd: // fp addition
-                fadd_instr++;
-                continue;
-            case Instruction::FSub: // fp subtraction
-                fsub_instr++;
-                continue;
-            case Instruction::FMul: // fp multiplication
-                fmul_instr++;
-                continue;
-            case Instruction::FDiv: // fp division
-                fdiv_instr++;
                 continue;
             case Instruction::FRem: // fp remainder
                 frem_instr++;
@@ -168,24 +190,73 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
             case Instruction::Xor: // xor
                 xor_instr++;
                 continue;
-            case Instruction::Br: // branch
-                br_instr++;
-                continue;
-            case Instruction::Switch: // switch
-                sw_instr++;
-                continue;
-            case Instruction::Store: // store
-                str_instr++;
+            case Instruction::Alloca: // allocate stack memory
+            case Instruction::GetElementPtr: // address of subelement
                 continue;
             case Instruction::Load: // load
                 ld_instr++;
                 continue;
-            case Instruction::Alloca: // allocate stack memory
+            case Instruction::Store: // store
+                str_instr++;
+                continue;
+            case Instruction::Trunc: // truncate
+                iconv_instr++;
+                continue;
+            case Instruction::ZExt: // zero-extend
+                iconv_instr++;
+                continue;
+            case Instruction::SExt: // sign-extend
+                iconv_instr++;
+                continue;
+            case Instruction::FPTrunc: // fp truncate
+                fconv_instr++;
+                continue;
+            case Instruction::FPExt: // fp extend
+                fconv_instr++;
+                continue;
+            case Instruction::FPToUI: // fp to unsigned int
+                tconv_instr++;
+                continue;
+            case Instruction::FPToSI: // fp to signed int
+                tconv_instr++;
+                continue;
+            case Instruction::UIToFP: // unsigned int to fp
+                tconv_instr++;
+                continue;
+            case Instruction::SIToFP: // signed int to fp
+                tconv_instr++;
+                continue;
+            case Instruction::IntToPtr: // int to pointer
+                oconv_instr++;
+                continue;
+            case Instruction::PtrToInt: // pointer to int
+                oconv_instr++;
+                continue;
+            case Instruction::BitCast: // bitcast
+                oconv_instr++;
+                continue;
+            case Instruction::ICmp: // int compare
+                icmp_instr++;
+                continue;
+            case Instruction::FCmp: // fp compare
+                fcmp_instr++;
+                continue;
+            case Instruction::PHI: // phi nodes
+                phi_instr++;
+                continue;
+            case Instruction::Shl: // shift left
+                shift_instr++;
+                continue;
+            case Instruction::LShr: // logic shift right
+                shift_instr++;
+                continue;
+            case Instruction::AShr: // arith shift right
+                shift_instr++;
+                continue;
             case Instruction::Call: // function call
-            case Instruction::Ret: // return
                 continue;
             default:
-            //    errs() << it->getOpcodeName() << "\n";
+                errs() << it->getOpcodeName() << "\n";
                 other++;
                 break;
         }
@@ -194,24 +265,33 @@ bool ShackletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     // create atomic addition instruction
     createInstr(bb, instrCounter[0] , instr      , true);
     createInstr(bb, instrCounter[1] , basic_block, true);
-    createInstr(bb, instrCounter[2] , add_instr  , true);
-    createInstr(bb, instrCounter[3] , sub_instr  , true);
-    createInstr(bb, instrCounter[4] , mul_instr  , true);
-    createInstr(bb, instrCounter[5] , div_instr  , true);
-    createInstr(bb, instrCounter[6] , rem_instr  , true);
-    createInstr(bb, instrCounter[7] , and_instr  , true);
-    createInstr(bb, instrCounter[8] , or_instr   , true);
-    createInstr(bb, instrCounter[9] , xor_instr  , true);
-    createInstr(bb, instrCounter[10], br_instr   , true);
-    createInstr(bb, instrCounter[11], sw_instr   , true);
-    createInstr(bb, instrCounter[12], str_instr  , true);
-    createInstr(bb, instrCounter[13], ld_instr   , true);
-    createInstr(bb, instrCounter[14], other      , true);
-    createInstr(bb, instrCounter[15], fadd_instr , true);
-    createInstr(bb, instrCounter[16], fsub_instr , true);
-    createInstr(bb, instrCounter[17], fmul_instr , true);
-    createInstr(bb, instrCounter[18], fdiv_instr , true);
-    createInstr(bb, instrCounter[19], frem_instr , true);
+    createInstr(bb, instrCounter[2] , br_instr   , true);
+    createInstr(bb, instrCounter[3] , sw_instr   , true);
+    createInstr(bb, instrCounter[4] , add_instr  , true);
+    createInstr(bb, instrCounter[5] , sub_instr  , true);
+    createInstr(bb, instrCounter[6] , mul_instr  , true);
+    createInstr(bb, instrCounter[7] , div_instr  , true);
+    createInstr(bb, instrCounter[8] , rem_instr  , true);
+    createInstr(bb, instrCounter[9] , fadd_instr , true);
+    createInstr(bb, instrCounter[10], fsub_instr , true);
+    createInstr(bb, instrCounter[11], fmul_instr , true);
+    createInstr(bb, instrCounter[12], fdiv_instr , true);
+    createInstr(bb, instrCounter[13], frem_instr , true);
+    createInstr(bb, instrCounter[14], fneg_instr , true);
+    createInstr(bb, instrCounter[15], and_instr  , true);
+    createInstr(bb, instrCounter[16], or_instr   , true);
+    createInstr(bb, instrCounter[17], xor_instr  , true);
+    createInstr(bb, instrCounter[18], shift_instr, true);
+    createInstr(bb, instrCounter[19], icmp_instr , true);
+    createInstr(bb, instrCounter[20], fcmp_instr , true);
+    createInstr(bb, instrCounter[21], phi_instr  , true);
+    createInstr(bb, instrCounter[22], iconv_instr, true);
+    createInstr(bb, instrCounter[23], fconv_instr, true);
+    createInstr(bb, instrCounter[24], tconv_instr, true);
+    createInstr(bb, instrCounter[25], oconv_instr, true);
+    createInstr(bb, instrCounter[26], ld_instr   , true);
+    createInstr(bb, instrCounter[27], str_instr  , true);
+    createInstr(bb, instrCounter[28], other      , true);
     
     return true;
 }
