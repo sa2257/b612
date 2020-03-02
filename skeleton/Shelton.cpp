@@ -13,24 +13,30 @@ namespace {
     SheltonPass() : FunctionPass(ID) {}
 
     virtual bool runOnFunction(Function &F); // Called for every function
-    virtual bool runDepthInFunction(Function &F);
-    virtual bool runSDGInFunction(Function &F);
+    virtual int  runDepthInFunction(Function &F);
+    virtual int  runDGInFunction(Function &F); // For each function, create the dependency graph
+    virtual int  getSizeFunction(Function &F);
     
-    virtual int runOnInstruction(Instruction &I, int depth);
+    virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I);
+    virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I);
+    
+    virtual int  runOnInstruction(Instruction &I, int depth);
     virtual bool successorsOfInstruction(Instruction &I);
-    virtual bool checkInstrNotInUsed(std::list<Instruction*> Used, Instruction &I);
-    virtual bool checkInstrDependence(std::list<Instruction*> Deps, Instruction &I);
   };
 }
 
 bool SheltonPass::runOnFunction(Function &F) {
   errs() << "\n Visiting function " << F.getName() << "!\n";
-  bool sdg = runSDGInFunction(F);
-  //bool depth = runDepthInFunction(F);
+  //int depth = runDepthInFunction(F);
+  //errs() << "\n " << F.getName() << " has " << depth << " depth!\n";
+  int sdg = runDGInFunction(F);
+  errs() << "\n " << F.getName() << " has " << sdg << " levels!\n";
   return false;
 }
 
-bool SheltonPass::runDepthInFunction(Function &F) {
+/* Functions on functions */
+
+int SheltonPass::runDepthInFunction(Function &F) {
   int maxDepth = 0;
   for (auto &B: F) {
       errs() << "\n Block: " << B << "\n";
@@ -43,42 +49,54 @@ bool SheltonPass::runDepthInFunction(Function &F) {
           }
       }
   }
-  errs() << "\n Maximum tree depth is " << maxDepth << "\n \n";
-  return false;
+  return maxDepth;
 }
 
-bool SheltonPass::runSDGInFunction(Function &F) {
-  std::list<Instruction*> Deps; 
-  std::list<Instruction*> Used; 
-  for (auto &B: F) {
-      errs() << "\n BB size: " << B.size() << "\n";
-      for (auto &I: B) {
-          errs() << "\n Instruction: " << I << "\n";
-          if (checkInstrNotInUsed(Used, I)) {
-            Deps.push_back(&I);
-          }
-          if (checkInstrDependence(Deps, I)) {
-            Used.push_back(&I);
-          }
-      }
+int SheltonPass::runDGInFunction(Function &F) {
+  std::list<Instruction*> Used;
+  int level = 0;
+  while (Used.size() < getSizeFunction(F)) {
+    std::list<Instruction*> Deps; 
+    for (auto &B: F) {
+        for (auto &I: B) {
+            if (checkInstrNotInList(Used, I)) {
+              Deps.push_back(&I);
+              if (checkInstrDependence(Deps, I)) {
+                Used.push_back(&I);
+                errs() << "\n Instruction: " << I << " level: " << level << "\n";
+              }
+            }
+        }
+    }
+    // errs() << "\n Used size: " << Used.size() << "\n";
+    level = level + 1;
   }
-  errs() << "\n Deps size: " << Deps.size() << "\n";
-  errs() << "\n Used size: " << Used.size() << "\n";
-  return false;
+  return level;
 }
 
-bool SheltonPass::checkInstrNotInUsed(std::list<Instruction*> Used, Instruction &I) {
-    for (auto U: Used) {
-        if (U == &I) {
+int SheltonPass::getSizeFunction(Function &F) {
+  int size = 0; 
+  for (auto &B: F) {
+      //errs() << "\n BB size: " << B.size() << "\n";
+      size = size + B.size();
+  }
+  return size;
+}
+
+/* Functions on lists*/
+
+bool SheltonPass::checkInstrNotInList(std::list<Instruction*> List, Instruction &I) {
+    for (auto L: List) {
+        if (L == &I) {
             return false;
         }
     }
     return true;
 }
 
-bool SheltonPass::checkInstrDependence(std::list<Instruction*> Deps, Instruction &I) {
-    for (auto D: Deps) {
-        for (auto& U : D->uses()) {
+bool SheltonPass::checkInstrDependence(std::list<Instruction*> List, Instruction &I) {
+    for (auto L: List) {
+        for (auto& U : L->uses()) {
             User* user = U.getUser();
             if (user == &I) {
                 return false;
@@ -87,6 +105,8 @@ bool SheltonPass::checkInstrDependence(std::list<Instruction*> Deps, Instruction
     }
     return true;
 }
+
+/* Functions on instructions */
 
 int SheltonPass::runOnInstruction(Instruction &I, int depth) {
   int initDepth = depth;
