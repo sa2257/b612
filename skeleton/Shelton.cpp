@@ -21,16 +21,15 @@ namespace {
     virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I);
     
     virtual int  runOnInstruction(Instruction &I, int depth);
-    virtual bool successorsOfInstruction(Instruction &I);
   };
 }
 
 bool SheltonPass::runOnFunction(Function &F) {
   errs() << "\n Visiting function " << F.getName() << "!\n";
-  //int depth = runDepthInFunction(F);
-  //errs() << "\n " << F.getName() << " has " << depth << " depth!\n";
+  int depth = runDepthInFunction(F);
+  errs() << "\n " << F.getName() << " has " << depth << " depth!\n";
   int sdg = runDGInFunction(F);
-  errs() << "\n " << F.getName() << " has " << sdg << " levels!\n";
+  errs() << "\n " << F.getName() << " has " << sdg << " height!\n";
   return false;
 }
 
@@ -39,13 +38,14 @@ bool SheltonPass::runOnFunction(Function &F) {
 int SheltonPass::runDepthInFunction(Function &F) {
   int maxDepth = 0;
   for (auto &B: F) {
-      errs() << "\n Block: " << B << "\n";
+      //errs() << "\n Block: " << B << "\n";
       for (auto &I: B) {
-          errs() << "\n Instruction: " << I << "\n";
           int depth = 1;
           depth = runOnInstruction(I, depth);
+          //errs() << "\n Instruction: " << I << " depth: " << depth << "\n";
           if (depth > maxDepth) {
               maxDepth = depth;
+              errs() << "\n Path starting from Instruction: " << I << " is critical aon!\n";
           }
       }
   }
@@ -54,7 +54,7 @@ int SheltonPass::runDepthInFunction(Function &F) {
 
 int SheltonPass::runDGInFunction(Function &F) {
   std::list<Instruction*> Used;
-  int level = 0;
+  int height = 0;
   while (Used.size() < getSizeFunction(F)) {
     std::list<Instruction*> Deps; 
     for (auto &B: F) {
@@ -63,15 +63,15 @@ int SheltonPass::runDGInFunction(Function &F) {
               Deps.push_back(&I);
               if (checkInstrDependence(Deps, I)) {
                 Used.push_back(&I);
-                errs() << "\n Instruction: " << I << " level: " << level << "\n";
+                errs() << "\n Instruction: " << I << " height: " << height << "\n";
               }
             }
         }
     }
     // errs() << "\n Used size: " << Used.size() << "\n";
-    level = level + 1;
+    height = height + 1;
   }
-  return level;
+  return height;
 }
 
 int SheltonPass::getSizeFunction(Function &F) {
@@ -116,7 +116,7 @@ int SheltonPass::runOnInstruction(Instruction &I, int depth) {
       User* user = U.getUser();  // Find all the places I is used
       if (isa<Instruction>(user)){
           Instruction* ins = cast<Instruction>(user);
-          errs() << "Next in path: " << *ins << "\n";
+          //errs() << "Next in path: " << *ins << "\n";
           depth++;
           depth = runOnInstruction(*ins, depth);
           if (depth > maxDepth) {
@@ -125,15 +125,6 @@ int SheltonPass::runOnInstruction(Instruction &I, int depth) {
       }
   }
   return maxDepth;
-}
-
-bool SheltonPass::successorsOfInstruction(Instruction &I) {
-  errs() << "No. of successors " << I.getNumSuccessors() << "\n"; // Find how many successors
-  if (I.getNumSuccessors() > 0) {
-      BasicBlock* Succ = I.getSuccessor(0);
-      errs() << "Specified successor " << *Succ << "\n";
-  }
-  return false;
 }
 
 char SheltonPass::ID = 0;
