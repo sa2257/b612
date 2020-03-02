@@ -4,7 +4,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/IR/Instruction.h"
-//#include <list.h>
+#include <list>
 using namespace llvm;
 
 namespace {
@@ -18,9 +18,8 @@ namespace {
     
     virtual int runOnInstruction(Instruction &I, int depth);
     virtual bool successorsOfInstruction(Instruction &I);
-    virtual int createSDG(Instruction &I);
-    
-    Instruction* SDG[20][10];
+    virtual bool checkInstrNotInUsed(std::list<Instruction*> Used, Instruction &I);
+    virtual bool checkInstrDependence(std::list<Instruction*> Deps, Instruction &I);
   };
 }
 
@@ -49,39 +48,44 @@ bool SheltonPass::runDepthInFunction(Function &F) {
 }
 
 bool SheltonPass::runSDGInFunction(Function &F) {
+  std::list<Instruction*> Deps; 
+  std::list<Instruction*> Used; 
   for (auto &B: F) {
+      errs() << "\n BB size: " << B.size() << "\n";
       for (auto &I: B) {
           errs() << "\n Instruction: " << I << "\n";
-          int temp = createSDG(I);
+          if (checkInstrNotInUsed(Used, I)) {
+            Deps.push_back(&I);
+          }
+          if (checkInstrDependence(Deps, I)) {
+            Used.push_back(&I);
+          }
       }
   }
+  errs() << "\n Deps size: " << Deps.size() << "\n";
+  errs() << "\n Used size: " << Used.size() << "\n";
   return false;
 }
 
-int SheltonPass::createSDG(Instruction &I) {
-  int i, j;
-  for (i=0; i<20; i++) {
-        bool isSame = false;
-    for (j=0; j<10; j++) {
-        // check if SDG[i][j] is real
-        for(auto& U : SDG[i][j]->uses()) { // find all places old ins is used
-            User* user = U.getUser();  // find all instructions that use the old ins
-            if (isa<Instruction>(user)){
-                Instruction* ins = cast<Instruction>(user);
-                bool isSame = ins->isIdenticalTo(&I);
-                errs() << "Found current ins in " << SDG[i][j] << "\n";
-                if(isSame) {
-                    break;
-                }
-            }
-        }
-        if(isSame) {
-            break;
+bool SheltonPass::checkInstrNotInUsed(std::list<Instruction*> Used, Instruction &I) {
+    for (auto U: Used) {
+        if (U == &I) {
+            return false;
         }
     }
-  }
-  SDG[i][j + 1] = &I;
-  return 1;
+    return true;
+}
+
+bool SheltonPass::checkInstrDependence(std::list<Instruction*> Deps, Instruction &I) {
+    for (auto D: Deps) {
+        for (auto& U : D->uses()) {
+            User* user = U.getUser();
+            if (user == &I) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 int SheltonPass::runOnInstruction(Instruction &I, int depth) {
