@@ -26,8 +26,8 @@ namespace {
 
 bool SheltonPass::runOnFunction(Function &F) {
   errs() << "\n Visiting function " << F.getName() << "!\n";
-  int depth = runDepthInFunction(F);
-  errs() << "\n " << F.getName() << " has " << depth << " depth!\n";
+  //int depth = runDepthInFunction(F);
+  //errs() << "\n " << F.getName() << " has " << depth << " depth!\n"; // This fails at terminators, debug
   int sdg = runDGInFunction(F);
   errs() << "\n " << F.getName() << " has " << sdg << " height!\n";
   return false;

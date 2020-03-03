@@ -34,5 +34,8 @@ time:
 allocate:
 	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b allocate; done )
 
+depgen:
+	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b depgen; done )
+
 clean:
 	@( for b in $(BENCHMARKS); do $(MAKE) -C $$b clean || exit ; done )

@@ -2,7 +2,8 @@ SOURCES   := $(HW_SRCS) $(HOST_SRCS)
 LLVMS     := $(SOURCES:%.c=%.ll)
 PROFPASS  := $(SOURCES:%.c=%-prof.ll)
 ALLCPASS  := $(SOURCES:%.c=%-alloc.ll)
-PASSES    := $(PROFPASS) $(ALLCPASS)
+DEPSPASS  := $(SOURCES:%.c=%-dep.ll)
+PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPSPASS)
 TARGET    := $(KERNEL)
 SIMPLE    := exe
 
@@ -13,8 +14,9 @@ OPT       := /usr/local/opt/llvm/bin/opt
 ASMFLAG   := -S
 LLVMFLAG  := -emit-llvm
 CXXFLAGS  := -O3
-PROFFLAGS  := -load ../../build/skeleton/libShackletonPass.so --shackleton
-ALLCFLAGS  := -load ../../build/skeleton/libStiltonPass.so --stilton
+PROFFLAGS := -load ../../build/skeleton/libShackletonPass.so --shackleton
+ALLCFLAGS := -load ../../build/skeleton/libStiltonPass.so --stilton
+DEPSFLAGS := -load ../../build/skeleton/libSheltonPass.so --shelton
 PASSFLAGS := -select
 
 # Create assembly.
@@ -32,6 +34,10 @@ $(KERNEL)-prof.ll: $(KERNEL).ll
 # Run allocate pass on kernel.
 $(KERNEL)-alloc.ll: $(KERNEL).ll
 	$(OPT) $(ALLCFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ -o $@
+
+# Run dependence pass on kernel.
+$(KERNEL)-dep.ll: $(KERNEL).ll
+	$(OPT) $(DEPSFLAGS) $(ASMFLAG) $^ -o $@
 
 # Link the program.
 $(TARGET): $(PROFPASS)
@@ -59,6 +65,11 @@ time: $(TARGET)
 # Run allocator.
 .PHONY: allocate
 allocate: $(KERNEL)-alloc.ll
+	continue
+
+# Run dependece.
+.PHONY: depgen
+depgen: $(KERNEL)-dep.ll
 	continue
 
 .PHONY: clean
