@@ -1,6 +1,6 @@
 // Initially taken from llvm-pass-skeleton/skeleton/Skeleton.cpp at https://github.com/sampsyo/llvm-pass-skeleton.git and later modified by Sachille Atapattu
 
-/* Stilton: Allocates functional units to the instruction stream and does an optimum check if a basic block fits */
+/* Singleton: Combines Stilton which allocates and Shelton with checks dependencies */
 
 #include "llvm/Pass.h"
 #include "llvm/IR/IRBuilder.h"

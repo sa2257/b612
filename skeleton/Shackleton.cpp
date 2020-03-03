@@ -1,5 +1,7 @@
 // Initially taken from llvm_profiling/skeleton/Skeleton.cpp at https://github.com/neiladit/llvm_profiling.git and later modified by Sachille Atapattu
 
+/*Shackleton: This profiles most of the instructions and reports the raw numbers of occurence*/
+
 #include "llvm/Pass.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Constants.h"
