@@ -16,6 +16,8 @@
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <string.h>
 #include <vector>
+#include <fstream>
+#include <list>
 
 #include "llvm/Support/CommandLine.h"
 
@@ -24,11 +26,12 @@ using namespace llvm;
 
 static cl::opt<string> InputModule("function", cl::desc("Specify function to run pass"), cl::value_desc("module"));
 static cl::opt<bool> SwitchOn("select", cl::desc("Select to run pass"));
+std::ofstream outfile; // Only for static information of course! 
 
 namespace {
-  struct StiltonPass : public ModulePass {
+  struct SingletonPass : public ModulePass {
       static char ID;
-      StiltonPass() : ModulePass(ID) {}
+      SingletonPass() : ModulePass(ID) {}
       
       virtual bool runOnModule(Module &M); //when there is a Module
       virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
@@ -38,25 +41,21 @@ namespace {
       bool finialize(Module &M); //print global variable
       void createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc);
 
-      //int d_ratio = 1; int m_ratio = 2; int a_ratio = 3; int l_ratio = 3;
-      //int f_ratio = 0; int i_ratio = 1;
-      //int dmal_total = d_ratio + m_ratio + a_ratio + l_ratio;
-      //int fi_total = f_ratio + i_ratio;
-      //int pe_len = 3;
       int d_ratio = 1; int m_ratio = 1; int a_ratio = 1; int l_ratio = 1;
       int f_ratio = 1; int i_ratio = 3;
       int dmal_total = d_ratio + m_ratio + a_ratio + l_ratio;
       int fi_total = f_ratio + i_ratio;
-      int pe_len = 4;
+      int pe_len = 12;
   };
 }
 
-bool StiltonPass::runOnModule(Module &M)
+bool SingletonPass::runOnModule(Module &M)
 {
-    bool modified = initialize(M);
-    
     errs() << "Pass run status: " << SwitchOn << "\n";
     errs() << "Pass running on: " << InputModule << "\n";
+    outfile.open("output.txt", std::ios_base::app);
+    outfile << "Pass run status: " << SwitchOn << "\n";
+    outfile << "Pass running on: " << InputModule << "\n";
     
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
     int imul_pes = pe_len * pe_len * m_ratio * i_ratio / dmal_total / fi_total;
@@ -67,46 +66,33 @@ bool StiltonPass::runOnModule(Module &M)
     int fari_pes = pe_len * pe_len * a_ratio * f_ratio / dmal_total / fi_total;
     int flog_pes = pe_len * pe_len * l_ratio * f_ratio / dmal_total / fi_total;
     int mem_units = (pe_len + 1) * (pe_len + 1);
-    errs() << "Available resources: " << 
+    outfile << "Available resources: " << 
         idiv_pes << "," << imul_pes << "," << iari_pes << "," <<
         fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
         ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
     
-    for (auto func = M.begin(); func != M.end(); func++) {
-        modified |= runOnFunction(*func, M);
+    for (auto &func: M) {
+        bool modified = runOnFunction(func, M);
     }
-    modified |= finialize(M);
     
-    return modified;
+    return true;
 }
 
-void StiltonPass::createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc){
-    Instruction *before  = loc ? bb.getTerminator() : bb.getFirstNonPHI();
-    if(num){ // create atomic addition instruction
-        new AtomicRMWInst(AtomicRMWInst::Add,
-                      counter_ptr, // pointer to global variable
-                      ConstantInt::get(Type::getInt64Ty(bb.getContext()), num), //create integer with value num
-                      AtomicOrdering::SequentiallyConsistent, //operations may not be reordered
-                      SyncScope::System, // synchronize to all threads
-                      before); //insert right before block terminator
-    }
-}
-
-bool StiltonPass::runOnFunction(Function &F, Module &M)
+bool SingletonPass::runOnFunction(Function &F, Module &M)
 {
     bool modified = false;
     string funcName = F.getName();
 
-    for (auto bb = F.begin(); bb != F.end(); bb++) {
+    for (auto &bb: F) {
         if (SwitchOn || funcName == InputModule) {
-            modified |= runOnBasicBlock(*bb, M);
+            modified |= runOnBasicBlock(bb, M);
         }
     }
 
     return modified;
 }
 
-bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
+bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
 {
     // available pe resources.
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
@@ -120,118 +106,154 @@ bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     int mem_units = (pe_len + 1) * (pe_len + 1);
     bool fail = false;
     
-    errs() << "Basic block of size " << bb.size() << "\n";
-    for (auto it = bb.begin(); it != bb.end(); it++) {
-        switch (it->getOpcode()) {
+    outfile << "Basic block of size " << bb.size() << "\n";
+    std::list<string> mapping;
+    for (auto &it: bb) {
+        switch (it.getOpcode()) {
             case Instruction::Add: // addition
                 iari_pes--;
+                mapping.push_back("arith");
                 continue;
             case Instruction::Sub: // subtraction
                 iari_pes--;
+                mapping.push_back("arith");
                 continue;
             case Instruction::Mul: // multiplication
                 imul_pes--;
+                mapping.push_back("mul");
                 continue;
             case Instruction::UDiv: // division unsigned
             case Instruction::SDiv: // division signed
                 idiv_pes--;
+                mapping.push_back("div");
                 continue;
             case Instruction::URem: // remainder unsigned
             case Instruction::SRem: // remainder signed
                 idiv_pes--;
+                mapping.push_back("div");
                 continue;
             case Instruction::FAdd: // fp addition
                 fari_pes--;
+                mapping.push_back("farith");
                 continue;
             case Instruction::FSub: // fp subtraction
                 fari_pes--;
+                mapping.push_back("farith");
                 continue;
             case Instruction::FMul: // fp multiplication
                 fmul_pes--;
+                mapping.push_back("fmul");
                 continue;
             case Instruction::FDiv: // fp division
                 fdiv_pes--;
+                mapping.push_back("fdiv");
                 continue;
             case Instruction::FRem: // fp remainder
                 fdiv_pes--;
+                mapping.push_back("fdiv");
                 continue;
             case Instruction::And: // and
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::Or: // or
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::Xor: // xor
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::Trunc: // truncate
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::ZExt: // zero extend
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::SExt: // sign extend
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::Shl: // shift left
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::LShr: // logic shift right
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::AShr: // arith shift right
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::ICmp: // integer compare
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::PHI: // PHI node
                 ilog_pes--;
+                mapping.push_back("logic");
                 continue;
             case Instruction::FCmp: // fp compare
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::FPTrunc: // fp truncate
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::FPExt: // fp extend
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::FPToUI: // fp to unsigned int
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::FPToSI: // fp to signed int
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::UIToFP: // unsigned int to fp
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::SIToFP: // signed int to fp
                 flog_pes--;
+                mapping.push_back("flogic");
                 continue;
             case Instruction::Br: // branch
+                mapping.push_back("control");
                 continue;
             case Instruction::Switch: // switch
+                mapping.push_back("control");
                 continue;
             case Instruction::Store: // store
                 mem_units--;
+                mapping.push_back("memory");
                 continue;
             case Instruction::Load: // load
                 mem_units--;
+                mapping.push_back("memory");
                 continue;
             case Instruction::Call: // function call
                 mem_units--;
+                mapping.push_back("control");
                 continue;
             case Instruction::Alloca: // Ignore allocate stack
+                mapping.push_back("reg");
                 continue;
             case Instruction::GetElementPtr: // Ignore get address
                 continue;
             case Instruction::BitCast: // Ignore convert type without bit change
                 continue;
             case Instruction::Ret: // Ignore return
+                mapping.push_back("control");
                 continue;
             default:
-                errs() << "Can't map bb, instruction " << it->getOpcodeName() << " not supported!" << "\n";
+                errs() << "Can't map bb, instruction " << it.getOpcodeName() << " not supported!" << "\n";
                 fail = true;
                 break;
         }
@@ -268,26 +290,21 @@ bool StiltonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     flog_pes = pe_len * pe_len * l_ratio * f_ratio / dmal_total / fi_total - flog_pes;
     mem_units = (pe_len + 1) * (pe_len + 1) - mem_units;
     if (!fail) {
-        errs() << "Basic block can be mapped with " << 
+        outfile << "Basic block can be mapped with " << 
             idiv_pes << "," << imul_pes << "," << iari_pes << "," <<
             fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
             ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
+    }
+    int i = 1;
+    for (auto S: mapping){
+        outfile << i << ": " << S << "\n";
+        i++;
     }
     
     return true;
 }
 
-bool StiltonPass::initialize(Module &M)
-{
-    return true;
-}
+char SingletonPass::ID = 0;
 
-bool StiltonPass::finialize(Module &M)
-{
-    return true;
-}
-
-char StiltonPass::ID = 0;
-
-// Register the pass so `opt -stilton` runs it.
-static RegisterPass<StiltonPass> X("stilton", "a simple allocation pass");
+// Register the pass so `opt -singleton` runs it.
+static RegisterPass<SingletonPass> X("singleton", "a simple allocation pass");

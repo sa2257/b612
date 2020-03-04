@@ -3,7 +3,8 @@ LLVMS     := $(SOURCES:%.c=%.ll)
 PROFPASS  := $(SOURCES:%.c=%-prof.ll)
 ALLCPASS  := $(SOURCES:%.c=%-alloc.ll)
 DEPGPASS  := $(SOURCES:%.c=%-depg.ll)
-PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPGPASS)
+PLCEPASS  := $(SOURCES:%.c=%-plc.ll)
+PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPGPASS) $(PLCEPASS)
 TARGET    := $(KERNEL)
 
 # Ordinary Clang options.
@@ -16,6 +17,7 @@ CXXFLAGS  := -o3
 PROFFLAGS  := -load ../../build/skeleton/libShackletonPass.so --shackleton
 ALLCFLAGS  := -load ../../build/skeleton/libStiltonPass.so --stilton
 DEPGFLAGS  := -load ../../build/skeleton/libSheltonPass.so --shelton
+PLCEFLAGS  := -load ../../build/skeleton/libSingletonPass.so --singleton
 PASSFLAGS := -select
 
 # Create assembly.
@@ -38,6 +40,10 @@ $(KERNEL)-alloc.ll: $(KERNEL).ll
 $(KERNEL)-depg.ll: $(KERNEL).ll
 	$(OPT) $(DEPGFLAGS) $(ASMFLAG) $^ -o $@
 
+# Run placement pass on kernel.
+$(KERNEL)-plc.ll: $(KERNEL).ll
+	$(OPT) $(PLCEFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ -o $@
+
 # Link the program.
 $(TARGET): $(PROFPASS)
 	$(CXX+) $^ --output $@
@@ -55,6 +61,11 @@ allocate: $(KERNEL)-alloc.ll
 # Run dependence graph generator.
 .PHONY: depggen
 depggen: $(KERNEL)-depg.ll
+	continue
+
+# Run placement.
+.PHONY: place
+place: $(KERNEL)-plc.ll
 	continue
 
 .PHONY: clean
