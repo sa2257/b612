@@ -36,11 +36,8 @@ namespace {
       virtual bool runOnModule(Module &M); //when there is a Module
       virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
       virtual bool runOnBasicBlock(BasicBlock &BB, Module &M); // called by runOnFunction
+      virtual bool mappingFunc(std::list<string> &mapping);
       
-      bool initialize(Module &M); //create global variable
-      bool finialize(Module &M); //print global variable
-      void createInstr(BasicBlock &bb, Constant *counter_ptr, int num, bool loc);
-
       int d_ratio = 1; int m_ratio = 1; int a_ratio = 1; int l_ratio = 1;
       int f_ratio = 1; int i_ratio = 3;
       int dmal_total = d_ratio + m_ratio + a_ratio + l_ratio;
@@ -295,16 +292,110 @@ bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
             fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
             ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
     }
+    
+    bool mapDone = mappingFunc(mapping);
+    return true;
+}
+
+bool SingletonPass::mappingFunc(std::list<string> &mapping) {
+    int slcUnits  = dmal_total * fi_total;
+    int noOfSlcs  = (pe_len * pe_len) / slcUnits; // assert this is int
+    int idivUnits = d_ratio * i_ratio;
+    int imulUnits = m_ratio * i_ratio;
+    int iariUnits = a_ratio * i_ratio;
+    int ilogUnits = l_ratio * i_ratio;
+    int fdivUnits = d_ratio * f_ratio;
+    int fmulUnits = m_ratio * f_ratio;
+    int fariUnits = a_ratio * f_ratio;
+    int flogUnits = l_ratio * f_ratio;
+    int outrUnits = 16; // Hard coding for now, should be the ones in the boundary. Outer edge of 5 x 5 grid
+    int innrUnits = 9; // Inner nodes
+
+    bool mapped = false;
+    int slice = 0;
+    int placement[noOfSlcs][dmal_total][fi_total];
+    memset(placement, 0, sizeof(placement));
     int i = 1;
-    for (auto S: mapping){
+    int j, k = 0;
+    for (auto S: mapping) {
         outfile << i << ": " << S << "\n";
         i++;
+        
+        if (S == "arith") {
+            if (iariUnits == 0) {
+                errs() << "Ran out of int arith units to map!\n";
+                j = 0; k = 0; slice++;
+                if (slice == noOfSlcs)
+                    break;
+            }
+            placement[slice][k][j] = i;
+            iariUnits--;
+        }
+        else if (S == "mul") {
+            if (imulUnits == 0) {
+                errs() << "Ran out of int mul units to map!\n";
+                j = 0; k = 0; slice++;
+                memset(placement, 0, sizeof(placement));
+            }
+            placement[k][j] = i;
+            imulUnits--;
+        }
+        else if (S == "div") {
+            if (idivUnits == 0) {
+                errs() << "Ran out of int div units to map!\n";
+                j = 0; k = 0; slice++;
+                memset(placement, 0, sizeof(placement));
+            }
+            placement[k][j] = i;
+            idivUnits--;
+        }
+        else if (S == "logic") {
+            if (iariUnits == 0) {
+                errs() << "Ran out of int arith units to map!\n";
+                j = 0; k = 0; slice++;
+                memset(placement, 0, sizeof(placement));
+            }
+            placement[k][j] = i;
+            iariUnits--;
+        }
+        
+        j++;
+        if (j == 4) {
+            j = 0; k++;
+            if (k == 4) {
+
+                outfile << "Slice: " << slice << "\n";
+                for (k = 0; k < dmal_total; k++) {
+                    for (j = 0; j < fi_total; j++) {
+                        outfile << placement[k][j] << ", ";
+                    }
+                    outfile << "\n";
+                }
+                outfile << "\n";
+
+                j = 0; k = 0; slice++;
+                memset(placement, 0, sizeof(placement));
+                if (slice == noOfSlcs) {
+                    errs() << "Ran out of resources to map!\n";
+                    break;
+                }
+            }
+        }
     }
-    
+                
+    outfile << "Slice: " << slice << "\n";
+    for (k = 0; k < dmal_total; k++) {
+        for (j = 0; j < fi_total; j++) {
+            outfile << placement[k][j] << ", ";
+        }
+        outfile << "\n";
+    }
+    outfile << "\n";
+
     return true;
 }
 
 char SingletonPass::ID = 0;
 
 // Register the pass so `opt -singleton` runs it.
-static RegisterPass<SingletonPass> X("singleton", "a simple allocation pass");
+static RegisterPass<SingletonPass> X("singleton", "a simple placement pass");
