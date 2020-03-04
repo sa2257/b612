@@ -3,9 +3,11 @@ LLVMS     := $(SOURCES:%.c=%.ll)
 PROFPASS  := $(SOURCES:%.c=%-prof.ll)
 ALLCPASS  := $(SOURCES:%.c=%-alloc.ll)
 DEPSPASS  := $(SOURCES:%.c=%-dep.ll)
-PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPSPASS)
+PLCEPASS  := $(SOURCES:%.c=%-plc.ll)
+PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPSPASS) $(PLCEPASS)
 TARGET    := $(KERNEL)
 SIMPLE    := exe
+OUTPUT	  := output.txt
 
 # Ordinary Clang options.
 CXX+      := /usr/local/opt/llvm/bin/clang
@@ -17,6 +19,7 @@ CXXFLAGS  := -O3
 PROFFLAGS := -load ../../build/skeleton/libShackletonPass.so --shackleton
 ALLCFLAGS := -load ../../build/skeleton/libStiltonPass.so --stilton
 DEPSFLAGS := -load ../../build/skeleton/libSheltonPass.so --shelton
+PLCEFLAGS := -load ../../build/skeleton/libSingletonPass.so --singleton
 PASSFLAGS := -select
 
 # Create assembly.
@@ -38,6 +41,10 @@ $(KERNEL)-alloc.ll: $(KERNEL).ll
 # Run dependence pass on kernel.
 $(KERNEL)-dep.ll: $(KERNEL).ll
 	$(OPT) $(DEPSFLAGS) $(ASMFLAG) $^ -o $@
+
+# Run placement pass on kernel.
+$(KERNEL)-plc.ll: $(KERNEL).ll
+	$(OPT) $(PLCEFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ -o $@
 
 # Link the program.
 $(TARGET): $(PROFPASS)
@@ -72,7 +79,12 @@ allocate: $(KERNEL)-alloc.ll
 depgen: $(KERNEL)-dep.ll
 	continue
 
+# Run placement.
+.PHONY: place
+place: $(KERNEL)-plc.ll
+	continue
+
 .PHONY: clean
 clean:
-	rm -f $(LLVMS) $(PASSES) $(TARGET) $(SIMPLE)
+	rm -f $(LLVMS) $(PASSES) $(TARGET) $(SIMPLE) $(OUTPUT)
 
