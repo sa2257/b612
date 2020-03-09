@@ -1,6 +1,7 @@
 // Initially taken from llvm-pass-skeleton/skeleton/Skeleton.cpp at https://github.com/sampsyo/llvm-pass-skeleton.git and later modified by Sachille Atapattu
 
-/* Singleton: Combines Stilton which allocates and Shelton with checks dependencies */
+/* Singleton: Combines Stilton which allocates and Shelton with checks dependencies
+ * to make a placement pass */
 
 #include "llvm/Pass.h"
 #include "llvm/IR/IRBuilder.h"
@@ -229,20 +230,20 @@ bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
                 continue;
             case Instruction::Store: // store
                 mem_units--;
-                mapping.push_back("memory");
+                mapping.push_back("reg");
                 continue;
             case Instruction::Load: // load
                 mem_units--;
-                mapping.push_back("memory");
+                mapping.push_back("reg");
                 continue;
             case Instruction::Call: // function call
                 mem_units--;
                 mapping.push_back("control");
                 continue;
             case Instruction::Alloca: // Ignore allocate stack
-                mapping.push_back("reg");
                 continue;
             case Instruction::GetElementPtr: // Ignore get address
+                mapping.push_back("memory");
                 continue;
             case Instruction::BitCast: // Ignore convert type without bit change
                 continue;
@@ -309,151 +310,147 @@ bool SingletonPass::mappingFunc(std::list<string> &mapping) {
     int insToMap  = mapping.size();
 
     bool mapped = false;
+    int nodeUnits = dmal_total + 1 * fi_total + 1;
     int placement[noOfSlcs][dmal_total][fi_total];
-    memset(placement, 0, sizeof(placement));
+    int nodes[noOfSlcs][nodeUnits];
+    memset(placement, -1, sizeof(placement));
+    memset(nodes, -1, sizeof(nodes));
     
     int i = 0;
-    bool mapSkip = false;
     for (int s = 0; s < noOfSlcs; s++) {
-        int idivUnits = d_ratio * i_ratio;
-        int imulUnits = m_ratio * i_ratio;
-        int iariUnits = a_ratio * i_ratio;
-        int ilogUnits = l_ratio * i_ratio;
-        int fdivUnits = d_ratio * f_ratio;
-        int fmulUnits = m_ratio * f_ratio;
-        int fariUnits = a_ratio * f_ratio;
-        int flogUnits = l_ratio * f_ratio;
-        int outrUnits = 16; // Hard coding for now, should be the ones in the boundary. Outer edge of 5 x 5 grid
-        int innrUnits = 9; // Inner nodes
-        
-        for (int j = 0; j < dmal_total; j++) {
-            bool sliceSkip = false;
-            for (int k = 0; k < fi_total; k++) {
-                while(i < insToMap) {
-                    string S = mapping.front();
-                    mapping.pop_front();
-                    outfile << i << ": " << S << "\n";
-                    
-                    if (S == "arith") {
-                        if (iariUnits == 0) {
-                            errs() << "Ran out of int arith units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        iariUnits--;
-                        break;
-                    } else if (S == "mul") {
-                        if (imulUnits == 0) {
-                            errs() << "Ran out of int mul units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        imulUnits--;
-                        break;
-                    } else if (S == "div") {
-                        if (idivUnits == 0) {
-                            errs() << "Ran out of int div units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        idivUnits--;
-                        break;
-                    } else if (S == "logic") {
-                        if (ilogUnits == 0) {
-                            errs() << "Ran out of int logic units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        ilogUnits--;
-                        break;
-                    } else if (S == "farith") {
-                        if (fariUnits == 0) {
-                            errs() << "Ran out of fp arith units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        fariUnits--;
-                        break;
-                    } else if (S == "fmul") {
-                        if (fmulUnits == 0) {
-                            errs() << "Ran out of fp mul units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        fmulUnits--;
-                        break;
-                    } else if (S == "fdiv") {
-                        if (fdivUnits == 0) {
-                            errs() << "Ran out of fp div units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        fdivUnits--;
-                        break;
-                    } else if (S == "flogic") {
-                        if (flogUnits == 0) {
-                            errs() << "Ran out of fp logic units to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        placement[s][j][k] = i;
-                        flogUnits--;
-                        break;
-                    } else if (S == "control") {
-                        if (innrUnits == 0) {
-                            errs() << "Ran out of inner nodes to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        //placement[s][j][k] = i;
-                        innrUnits--;
-                        break;
-                    } else if (S == "reg") {
-                        if (innrUnits == 0) {
-                            errs() << "Ran out of inner nodes to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        //placement[s][j][k] = i;
-                        innrUnits--;
-                        break;
-                    } else if (S == "memory") {
-                        if (outrUnits == 0) {
-                            errs() << "Ran out of fp outer nodes to map!\n";
-                            mapping.push_front(S);
-                            sliceSkip = true;
-                        }
-                        //placement[s][j][k] = i;
-                        outrUnits--;
-                        break;
-                    }
-                    i++;
-                }
-                
-                if (i == insToMap) {
-                    mapSkip = true;
-                }
+        int idivUnits = 0;
+        int imulUnits = 0;
+        int iariUnits = 0;
+        int ilogUnits = 0;
+        int fdivUnits = 0;
+        int fmulUnits = 0;
+        int fariUnits = 0;
+        int flogUnits = 0;
 
-                if (sliceSkip || mapSkip)
-                    break;
-                
-                i++;
+        //int outrUnits = 16; // Hard coding for now, should be the ones in the boundary. Outer edge of 5 x 5 grid
+        //int innrUnits = 9; // Inner nodes
+        int nodeUnit = 0;
+        
+        bool sliceSkip = false;
+        while(i < insToMap) {
+            string S = mapping.front();
+            mapping.pop_front();
+            outfile << i << ": " << S << "\n";
+            
+            if (S == "arith") {
+                if (iariUnits == 3) {
+                    // errs() << "Ran out of int arith units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][iariUnits][1] = i;
+                }
+                iariUnits++;
+            } else if (S == "mul") {
+                if (imulUnits == 3) {
+                    // errs() << "Ran out of int mul units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][imulUnits][2] = i;
+                }
+                imulUnits++;
+            } else if (S == "div") {
+                if (idivUnits == 3) {
+                    // errs() << "Ran out of int div units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][idivUnits][3] = i;
+                }
+                idivUnits++;
+            } else if (S == "logic") {
+                if (ilogUnits == 3) {
+                    // errs() << "Ran out of int logic units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][ilogUnits][0] = i;
+                }
+                ilogUnits++;
+            } else if (S == "farith") {
+                if (fariUnits == 1) {
+                    // errs() << "Ran out of fp arith units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][3][1] = i;
+                }
+                fariUnits++;
+            } else if (S == "fmul") {
+                if (fmulUnits == 1) {
+                    // errs() << "Ran out of fp mul units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][3][2] = i;
+                }
+                fmulUnits++;
+            } else if (S == "fdiv") {
+                if (fdivUnits == 1) {
+                    // errs() << "Ran out of fp div units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][3][3] = i;
+                }
+                fdivUnits++;
+            } else if (S == "flogic") {
+                if (flogUnits == 1) {
+                    // errs() << "Ran out of fp logic units to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    placement[s][3][0] = i;
+                }
+                flogUnits++;
+            } else if (S == "control") {
+                if (nodeUnit == nodeUnits) {
+                    // errs() << "Ran out of nodes to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                   nodes[s][nodeUnit] = i;
+                }
+                nodeUnit++;
+            } else if (S == "reg") {
+                if (nodeUnit == nodeUnits) {
+                    // errs() << "Ran out of nodes to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    nodes[s][nodeUnit] = i;
+                }
+                nodeUnit++;
+            } else if (S == "memory") {
+                if (nodeUnit == nodeUnits) {
+                    // errs() << "Ran out of nodes to map!\n";
+                    mapping.push_front(S);
+                    sliceSkip = true;
+                } else {
+                    nodes[s][nodeUnit] = i;
+                }
+                nodeUnit++;
             }
-            if (sliceSkip || mapSkip)
+
+            if (sliceSkip) {
                 break;
+            }
+        
+            i++;
         }
-        if (mapSkip)
+        
+        if (i == insToMap) {
             break;
+        }
     }
 
-    if (!mapSkip) {
+    if (i < insToMap) {
         errs() << "Ran out of fabric before mapping!\n";
         mapped = false;
     } else {
