@@ -36,7 +36,7 @@ namespace {
       
       virtual bool runOnModule(Module &M); //when there is a Module
       virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
-      virtual bool runSorting(Function &F, std::list<Instruction*> Used);
+      virtual bool runSorting(BasicBlock &BB, std::list<Instruction*> Used);
       virtual bool runScheduling(std::list<Instruction*> &Sorted, std::list<string> &Schedule);
       virtual bool runMapping(std::list<string> &mapping);
       
@@ -88,45 +88,74 @@ bool SingletonPass::runOnFunction(Function &F, Module &M)
     //string funcName = F.getName();
 
     if (SwitchOn || F.getName() == InputModule) {
-        std::list<Instruction*> Sorted;
-        bool sorted    = runSorting(F, Sorted);
+        for (auto &B: F) {
+            std::list<Instruction*> Sorted;
+            bool sorted    = runSorting(B, Sorted);
 
-        std::list<string> Schedule;
-        bool scheduled = runScheduling(Sorted, Schedule);
+            std::list<string> Schedule;
+            bool scheduled = runScheduling(Sorted, Schedule);
 
 
-        bool placement = runMapping(Schedule);
-        modified = true;
+            bool placement = runMapping(Schedule);
+            modified = true;
+        }
     }
 
     return modified;
 }
 
-bool SingletonPass::runSorting(Function &F, std::list<Instruction*> Used) { 
-  int usedArr[getSizeFunction(F)][3];
-  memset(usedArr, -1, sizeof(usedArr));
+bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> Sorted) { 
+  std::list<Instruction*> Used;
+  //errs() << "BB size: " << BB.size() << "\n";
   int height = 0;
-  while (Used.size() < getSizeFunction(F)) {
+  while (Used.size() < BB.size()) {
     std::list<Instruction*> Deps; 
+    std::list<Instruction*> Temp;
+    int maxDepth = 0;
     int ins = 0;
-    for (auto &B: F) {
-        for (auto &I: B) {
-            if (checkInstrNotInList(Used, I)) {
-              Deps.push_back(&I);
-              if (checkInstrDependence(Deps, I)) {
-                Used.push_back(&I);
-                int depth = 1;
-                depth = runDepthSearch(I, depth, I);
-                usedArr[ins][0] = Used.size();
-                usedArr[ins][1] = height;
-                usedArr[ins][2] = depth;
-              }
+    int insH = 0;
+    for (auto &I: BB) {
+        if (checkInstrNotInList(Used, I)) {
+          Deps.push_back(&I);
+          if (checkInstrDependence(Deps, I)) {
+            int depth = 1;
+            depth = runDepthSearch(I, depth, I);
+            //errs() << Used.size() + 1 << " , " << height << " , " << depth << "\n";
+            if (depth > maxDepth) {
+                maxDepth = depth;
+                Temp.push_back(&I);
+                for (int i = 0; i < insH; i++) {
+                    Temp.push_back(Used.back());
+                    Used.pop_back();
+                }
+            } else {
+                for (int i = 0; i < insH; i++) {
+                    Instruction* popped = Used.back();
+
+                    if (depth > runDepthSearch(*popped, 1, *popped)) {
+                        Temp.push_front(popped);
+                        Used.pop_back();
+                    } else {
+                        Temp.push_front(&I);
+                        break;
+                    }
+                }
             }
-            ins = ins + 1;
+            int Size = Temp.size();
+            //errs() << "Push 'em back!\n";
+            for (int i = 0; i < Size; i++) {
+                Used.push_back(Temp.front());
+                Temp.pop_front();
+            }
+            //Used.push_back(&I);
+            insH =  insH + 1;
+          }
         }
+        ins = ins + 1;
     }
     height = height + 1;
   }
+
   return true;
 }
 
