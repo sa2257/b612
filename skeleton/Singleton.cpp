@@ -36,9 +36,9 @@ namespace {
       
       virtual bool runOnModule(Module &M); //when there is a Module
       virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
-      virtual bool runSorting(BasicBlock &BB, std::list<Instruction*> Used);
-      virtual bool runScheduling(std::list<Instruction*> &Sorted, std::list<string> &Schedule);
-      virtual bool runMapping(std::list<string> &mapping);
+      virtual bool runSorting(BasicBlock &BB, std::list<Instruction*> &Sorted);
+      virtual bool runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule);
+      virtual bool runMapping(std::list<string> &Schedule);
       
       virtual int  getSizeFunction(Function &F);
       virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I);
@@ -104,37 +104,39 @@ bool SingletonPass::runOnFunction(Function &F, Module &M)
     return modified;
 }
 
-bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> Sorted) { 
-  std::list<Instruction*> Used;
-  //errs() << "BB size: " << BB.size() << "\n";
+bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> &Sorted) { 
+  outfile << "BB size: " << BB.size() << "\n";
   int height = 0;
-  while (Used.size() < BB.size()) {
+  while (Sorted.size() < BB.size()) {
     std::list<Instruction*> Deps; 
     std::list<Instruction*> Temp;
     int maxDepth = 0;
     int ins = 0;
     int insH = 0;
     for (auto &I: BB) {
-        if (checkInstrNotInList(Used, I)) {
+        if (checkInstrNotInList(Sorted, I)) {
           Deps.push_back(&I);
           if (checkInstrDependence(Deps, I)) {
             int depth = 1;
             depth = runDepthSearch(I, depth, I);
-            //errs() << Used.size() + 1 << " , " << height << " , " << depth << "\n";
+            std::string str;
+            llvm::raw_string_ostream rso(str);
+            I.print(rso);
+            outfile << str << " , " << Sorted.size() + 1 << " , " << height << " , " << depth << "\n";
             if (depth > maxDepth) {
                 maxDepth = depth;
                 Temp.push_back(&I);
                 for (int i = 0; i < insH; i++) {
-                    Temp.push_back(Used.back());
-                    Used.pop_back();
+                    Temp.push_back(Sorted.back());
+                    Sorted.pop_back();
                 }
             } else {
                 for (int i = 0; i < insH; i++) {
-                    Instruction* popped = Used.back();
+                    Instruction* popped = Sorted.back();
 
                     if (depth > runDepthSearch(*popped, 1, *popped)) {
                         Temp.push_front(popped);
-                        Used.pop_back();
+                        Sorted.pop_back();
                     } else {
                         Temp.push_front(&I);
                         break;
@@ -142,12 +144,11 @@ bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> Sorted) {
                 }
             }
             int Size = Temp.size();
-            //errs() << "Push 'em back!\n";
             for (int i = 0; i < Size; i++) {
-                Used.push_back(Temp.front());
+                Sorted.push_back(Temp.front());
                 Temp.pop_front();
             }
-            //Used.push_back(&I);
+            //Sorted.push_back(&I);
             insH =  insH + 1;
           }
         }
@@ -159,7 +160,7 @@ bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> Sorted) {
   return true;
 }
 
-bool SingletonPass::runScheduling(std::list<Instruction*> &Sorted, std::list<string> &Schedule)
+bool SingletonPass::runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule)
 {
     // available pe resources.
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
@@ -172,7 +173,7 @@ bool SingletonPass::runScheduling(std::list<Instruction*> &Sorted, std::list<str
     int flog_pes = pe_len * pe_len * l_ratio * f_ratio / dmal_total / fi_total;
     int mem_units = (pe_len + 1) * (pe_len + 1);
     bool fail = false;
-    
+
     for (auto it: Sorted) {
         switch (it->getOpcode()) {
             case Instruction::Add: // addition
@@ -361,13 +362,13 @@ bool SingletonPass::runScheduling(std::list<Instruction*> &Sorted, std::list<str
             ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
     }
     
-    return true;
+    return !fail;
 }
 
-bool SingletonPass::runMapping(std::list<string> &mapping) {
+bool SingletonPass::runMapping(std::list<string> &Schedule) {
     int slcUnits  = dmal_total * fi_total;
     int noOfSlcs  = (pe_len * pe_len) / slcUnits; // assert this is int
-    int insToMap  = mapping.size();
+    int insToMap  = Schedule.size();
 
     bool mapped = false;
     int nodeUnits = dmal_total + 1 * fi_total + 1;
@@ -390,14 +391,14 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
         
         bool sliceSkip = false;
         while(i < insToMap) {
-            string S = mapping.front();
-            mapping.pop_front();
+            string S = Schedule.front();
+            Schedule.pop_front();
             outfile << i << ": " << S << "\n";
             
             if (S == "arith") {
                 if (iariUnits == 3) {
                     // errs() << "Ran out of int arith units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][iariUnits][1] = i;
@@ -406,7 +407,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "mul") {
                 if (imulUnits == 3) {
                     // errs() << "Ran out of int mul units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][imulUnits][2] = i;
@@ -415,7 +416,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "div") {
                 if (idivUnits == 3) {
                     // errs() << "Ran out of int div units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][idivUnits][3] = i;
@@ -424,7 +425,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "logic") {
                 if (ilogUnits == 3) {
                     // errs() << "Ran out of int logic units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][ilogUnits][0] = i;
@@ -433,7 +434,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "farith") {
                 if (fariUnits == 1) {
                     // errs() << "Ran out of fp arith units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][3][1] = i;
@@ -442,7 +443,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "fmul") {
                 if (fmulUnits == 1) {
                     // errs() << "Ran out of fp mul units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][3][2] = i;
@@ -451,7 +452,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "fdiv") {
                 if (fdivUnits == 1) {
                     // errs() << "Ran out of fp div units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][3][3] = i;
@@ -460,7 +461,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "flogic") {
                 if (flogUnits == 1) {
                     // errs() << "Ran out of fp logic units to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     placement[s][3][0] = i;
@@ -469,7 +470,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "control") {
                 if (nodeUnit == nodeUnits) {
                     // errs() << "Ran out of nodes to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                    nodes[s][nodeUnit] = i;
@@ -478,7 +479,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "reg") {
                 if (nodeUnit == nodeUnits) {
                     // errs() << "Ran out of nodes to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     nodes[s][nodeUnit] = i;
@@ -487,7 +488,7 @@ bool SingletonPass::runMapping(std::list<string> &mapping) {
             } else if (S == "memory") {
                 if (nodeUnit == nodeUnits) {
                     // errs() << "Ran out of nodes to map!\n";
-                    mapping.push_front(S);
+                    Schedule.push_front(S);
                     sliceSkip = true;
                 } else {
                     nodes[s][nodeUnit] = i;
