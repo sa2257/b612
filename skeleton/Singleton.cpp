@@ -371,7 +371,7 @@ bool SingletonPass::runMapping(std::list<string> &Schedule) {
     int insToMap  = Schedule.size();
 
     bool mapped = false;
-    int nodeUnits = dmal_total + 1 * fi_total + 1;
+    int nodeUnits = (dmal_total + 1) * (fi_total + 1);
     int placement[noOfSlcs][dmal_total][fi_total];
     int nodes[noOfSlcs][nodeUnits];
     memset(placement, -1, sizeof(placement));
@@ -512,11 +512,18 @@ bool SingletonPass::runMapping(std::list<string> &Schedule) {
         errs() << "Ran out of fabric before mapping!\n";
         mapped = false;
     } else {
+        outfile << "PE Mapping passed with: \n"; 
         for (int s = 0; s < noOfSlcs; s++) {
             outfile << "Slice: " << s << "\n";
             for (int j = 0; j < dmal_total; j++) {
                 for (int k = 0; k < fi_total; k++) {
                     outfile << placement[s][j][k] << ", ";
+                }
+                outfile << "\n";
+            }
+            for (int j = 0; j < dmal_total + 1; j++) {
+                for (int k = 0; k < fi_total + 1; k++) {
+                    outfile << nodes[s][j * (fi_total + 1) + k] << ", ";
                 }
                 outfile << "\n";
             }
