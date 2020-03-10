@@ -24,16 +24,16 @@ namespace {
     virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I);
     virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I);
     
-    virtual int  runOnInstruction(Instruction &I, int depth);
+    virtual int  runOnInstruction(Instruction &I, int depth, Instruction &init);
   };
 }
 
 bool SheltonPass::runOnFunction(Function &F) {
   errs() << "\n Visiting function " << F.getName() << "!\n";
-  //int depth = runDepthInFunction(F);
-  //errs() << "\n " << F.getName() << " has " << depth << " depth!\n"; // This fails at terminators, debug
+  int depth = runDepthInFunction(F);
+  errs() << "\n " << F.getName() << " has " << depth << " depth!\n\n"; // This fails at some terminators, debug
   int sdg = runDGInFunction(F);
-  errs() << "\n " << F.getName() << " has " << sdg << " height!\n";
+  errs() << "\n " << F.getName() << " has " << sdg << " height!\n\n";
   return false;
 }
 
@@ -45,11 +45,10 @@ int SheltonPass::runDepthInFunction(Function &F) {
       //errs() << "\n Block: " << B << "\n";
       for (auto &I: B) {
           int depth = 1;
-          depth = runOnInstruction(I, depth);
-          //errs() << "\n Instruction: " << I << " depth: " << depth << "\n";
+          depth = runOnInstruction(I, depth, I);
           if (depth > maxDepth) {
               maxDepth = depth;
-              errs() << "\n Path starting from Instruction: " << I << " is critical aon!\n";
+              errs() << "Path starting from Instruction: " << I << " is critical aon!\n\n";
           }
       }
   }
@@ -67,7 +66,9 @@ int SheltonPass::runDGInFunction(Function &F) {
               Deps.push_back(&I);
               if (checkInstrDependence(Deps, I)) {
                 Used.push_back(&I);
-                errs() << "\n Instruction: " << I << " height: " << height << "\n";
+                int depth = 1;
+                depth = runOnInstruction(I, depth, I);
+                errs() << "Instruction: " << I << " height: " << height << ", depth: " << depth << "\n\n";
               }
             }
         }
@@ -112,7 +113,7 @@ bool SheltonPass::checkInstrDependence(std::list<Instruction*> List, Instruction
 
 /* Functions on instructions */
 
-int SheltonPass::runOnInstruction(Instruction &I, int depth) {
+int SheltonPass::runOnInstruction(Instruction &I, int depth, Instruction &init) {
   int initDepth = depth;
   int maxDepth = depth; // if no uses return input depth
   for (auto& U : I.uses()) {
@@ -122,10 +123,24 @@ int SheltonPass::runOnInstruction(Instruction &I, int depth) {
           Instruction* ins = cast<Instruction>(user);
           //errs() << "Next in path: " << *ins << "\n";
           depth++;
-          depth = runOnInstruction(*ins, depth);
-          if (depth > maxDepth) {
-              maxDepth = depth;
+          if (ins == &init) {
+            errs() << "Cyclic dependency!\n";
+            depth++;
+          } else if (ins->getOpcode() == Instruction::PHI) {
+            errs() << "PHI node!\n";
+            depth++;
+          } else if (depth > 15) {
+            errs() << "Uncaptured possibly cyclic behaviour!\n";
+            errs() << "Instruction: " << I << " , next: " << *ins << " , start: " << init << "\n";
+          } else {
+            depth = runOnInstruction(*ins, depth, init);
           }
+      } else {
+          errs() << "Not an instruction!\n";
+          depth++;
+      }
+      if (depth > maxDepth) {
+          maxDepth = depth;
       }
   }
   return maxDepth;

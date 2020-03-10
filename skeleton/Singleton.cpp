@@ -38,12 +38,17 @@ namespace {
       virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
       virtual bool runOnBasicBlock(BasicBlock &BB, Module &M); // called by runOnFunction
       virtual bool mappingFunc(std::list<string> &mapping);
+      virtual int  runDGInFunction(Function &F); // For each function, create the dependency graph
+      virtual int  getSizeFunction(Function &F);
+      virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I);
+      virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I);
+      virtual int  runDepthSearch(Instruction &I, int depth, Instruction &init);
       
       int d_ratio = 1; int m_ratio = 1; int a_ratio = 1; int l_ratio = 1;
       int f_ratio = 1; int i_ratio = 3;
       int dmal_total = d_ratio + m_ratio + a_ratio + l_ratio;
       int fi_total = f_ratio + i_ratio;
-      int pe_len = 12;
+      int pe_len = 8;
   };
 }
 
@@ -80,6 +85,8 @@ bool SingletonPass::runOnFunction(Function &F, Module &M)
 {
     bool modified = false;
     string funcName = F.getName();
+
+    int height = runDGInFunction(F);
 
     for (auto &bb: F) {
         if (SwitchOn || funcName == InputModule) {
@@ -299,12 +306,6 @@ bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
 }
 
 bool SingletonPass::mappingFunc(std::list<string> &mapping) {
-    //int i = 1;
-    //for (auto S: mapping) {
-    //    outfile << i << ": " << S << "\n";
-    //    i++;
-    //}
-    
     int slcUnits  = dmal_total * fi_total;
     int noOfSlcs  = (pe_len * pe_len) / slcUnits; // assert this is int
     int insToMap  = mapping.size();
@@ -326,9 +327,6 @@ bool SingletonPass::mappingFunc(std::list<string> &mapping) {
         int fmulUnits = 0;
         int fariUnits = 0;
         int flogUnits = 0;
-
-        //int outrUnits = 16; // Hard coding for now, should be the ones in the boundary. Outer edge of 5 x 5 grid
-        //int innrUnits = 9; // Inner nodes
         int nodeUnit = 0;
         
         bool sliceSkip = false;
@@ -468,6 +466,88 @@ bool SingletonPass::mappingFunc(std::list<string> &mapping) {
     }
 
     return mapped;
+}
+
+int SingletonPass::runDGInFunction(Function &F) {
+  std::list<Instruction*> Used;
+  int height = 0;
+  while (Used.size() < getSizeFunction(F)) {
+    std::list<Instruction*> Deps; 
+    for (auto &B: F) {
+        for (auto &I: B) {
+            if (checkInstrNotInList(Used, I)) {
+              Deps.push_back(&I);
+              if (checkInstrDependence(Deps, I)) {
+                Used.push_back(&I);
+                int depth = 1;
+                depth = runDepthSearch(I, depth, I);
+                outfile << "Instruction: " << " height: " << height << ", depth: " << depth << "\n\n";
+              }
+            }
+        }
+    }
+    height = height + 1;
+  }
+  return height;
+}
+
+int SingletonPass::getSizeFunction(Function &F) {
+  int size = 0; 
+  for (auto &B: F) {
+      size = size + B.size();
+  }
+  return size;
+}
+
+bool SingletonPass::checkInstrNotInList(std::list<Instruction*> List, Instruction &I) {
+    for (auto L: List) {
+        if (L == &I) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SingletonPass::checkInstrDependence(std::list<Instruction*> List, Instruction &I) {
+    for (auto L: List) {
+        for (auto& U : L->uses()) {
+            User* user = U.getUser();
+            if (user == &I) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int SingletonPass::runDepthSearch(Instruction &I, int depth, Instruction &init) {
+  int initDepth = depth;
+  int maxDepth = depth; // if no uses return input depth
+  for (auto& U : I.uses()) {
+      depth = initDepth;
+      User* user = U.getUser();  // Find all the places I is used
+      if (isa<Instruction>(user)){
+          Instruction* ins = cast<Instruction>(user);
+          depth++;
+          if (ins == &init) {
+            depth++;
+          } else if (ins->getOpcode() == Instruction::PHI) {
+            depth++;
+          } else if (depth > 15) {
+            errs() << "Uncaptured possibly cyclic behaviour!\n";
+            errs() << "Instruction: " << I << " , next: " << *ins << " , start: " << init << "\n";
+          } else {
+            depth = runDepthSearch(*ins, depth, init);
+          }
+      } else {
+          errs() << "Not an instruction!\n";
+          depth++;
+      }
+      if (depth > maxDepth) {
+          maxDepth = depth;
+      }
+  }
+  return maxDepth;
 }
 
 char SingletonPass::ID = 0;
