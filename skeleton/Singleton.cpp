@@ -36,9 +36,10 @@ namespace {
       
       virtual bool runOnModule(Module &M); //when there is a Module
       virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
-      virtual bool runOnBasicBlock(BasicBlock &BB, Module &M); // called by runOnFunction
-      virtual bool mappingFunc(std::list<string> &mapping);
-      virtual int  runDGInFunction(Function &F); // For each function, create the dependency graph
+      virtual bool runSorting(Function &F, std::list<Instruction*> Used);
+      virtual bool runScheduling(std::list<Instruction*> &Sorted, std::list<string> &Schedule);
+      virtual bool runMapping(std::list<string> &mapping);
+      
       virtual int  getSizeFunction(Function &F);
       virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I);
       virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I);
@@ -84,20 +85,52 @@ bool SingletonPass::runOnModule(Module &M)
 bool SingletonPass::runOnFunction(Function &F, Module &M)
 {
     bool modified = false;
-    string funcName = F.getName();
+    //string funcName = F.getName();
 
-    int height = runDGInFunction(F);
+    if (SwitchOn || F.getName() == InputModule) {
+        std::list<Instruction*> Sorted;
+        bool sorted    = runSorting(F, Sorted);
 
-    for (auto &bb: F) {
-        if (SwitchOn || funcName == InputModule) {
-            modified |= runOnBasicBlock(bb, M);
-        }
+        std::list<string> Schedule;
+        bool scheduled = runScheduling(Sorted, Schedule);
+
+
+        bool placement = runMapping(Schedule);
+        modified = true;
     }
 
     return modified;
 }
 
-bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
+bool SingletonPass::runSorting(Function &F, std::list<Instruction*> Used) { 
+  int usedArr[getSizeFunction(F)][3];
+  memset(usedArr, -1, sizeof(usedArr));
+  int height = 0;
+  while (Used.size() < getSizeFunction(F)) {
+    std::list<Instruction*> Deps; 
+    int ins = 0;
+    for (auto &B: F) {
+        for (auto &I: B) {
+            if (checkInstrNotInList(Used, I)) {
+              Deps.push_back(&I);
+              if (checkInstrDependence(Deps, I)) {
+                Used.push_back(&I);
+                int depth = 1;
+                depth = runDepthSearch(I, depth, I);
+                usedArr[ins][0] = Used.size();
+                usedArr[ins][1] = height;
+                usedArr[ins][2] = depth;
+              }
+            }
+            ins = ins + 1;
+        }
+    }
+    height = height + 1;
+  }
+  return true;
+}
+
+bool SingletonPass::runScheduling(std::list<Instruction*> &Sorted, std::list<string> &Schedule)
 {
     // available pe resources.
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
@@ -111,154 +144,152 @@ bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     int mem_units = (pe_len + 1) * (pe_len + 1);
     bool fail = false;
     
-    outfile << "Basic block of size " << bb.size() << "\n";
-    std::list<string> mapping;
-    for (auto &it: bb) {
-        switch (it.getOpcode()) {
+    for (auto it: Sorted) {
+        switch (it->getOpcode()) {
             case Instruction::Add: // addition
                 iari_pes--;
-                mapping.push_back("arith");
+                Schedule.push_back("arith");
                 continue;
             case Instruction::Sub: // subtraction
                 iari_pes--;
-                mapping.push_back("arith");
+                Schedule.push_back("arith");
                 continue;
             case Instruction::Mul: // multiplication
                 imul_pes--;
-                mapping.push_back("mul");
+                Schedule.push_back("mul");
                 continue;
             case Instruction::UDiv: // division unsigned
             case Instruction::SDiv: // division signed
                 idiv_pes--;
-                mapping.push_back("div");
+                Schedule.push_back("div");
                 continue;
             case Instruction::URem: // remainder unsigned
             case Instruction::SRem: // remainder signed
                 idiv_pes--;
-                mapping.push_back("div");
+                Schedule.push_back("div");
                 continue;
             case Instruction::FAdd: // fp addition
                 fari_pes--;
-                mapping.push_back("farith");
+                Schedule.push_back("farith");
                 continue;
             case Instruction::FSub: // fp subtraction
                 fari_pes--;
-                mapping.push_back("farith");
+                Schedule.push_back("farith");
                 continue;
             case Instruction::FMul: // fp multiplication
                 fmul_pes--;
-                mapping.push_back("fmul");
+                Schedule.push_back("fmul");
                 continue;
             case Instruction::FDiv: // fp division
                 fdiv_pes--;
-                mapping.push_back("fdiv");
+                Schedule.push_back("fdiv");
                 continue;
             case Instruction::FRem: // fp remainder
                 fdiv_pes--;
-                mapping.push_back("fdiv");
+                Schedule.push_back("fdiv");
                 continue;
             case Instruction::And: // and
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::Or: // or
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::Xor: // xor
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::Trunc: // truncate
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::ZExt: // zero extend
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::SExt: // sign extend
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::Shl: // shift left
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::LShr: // logic shift right
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::AShr: // arith shift right
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::ICmp: // integer compare
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::PHI: // PHI node
                 ilog_pes--;
-                mapping.push_back("logic");
+                Schedule.push_back("logic");
                 continue;
             case Instruction::FCmp: // fp compare
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::FPTrunc: // fp truncate
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::FPExt: // fp extend
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::FPToUI: // fp to unsigned int
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::FPToSI: // fp to signed int
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::UIToFP: // unsigned int to fp
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::SIToFP: // signed int to fp
                 flog_pes--;
-                mapping.push_back("flogic");
+                Schedule.push_back("flogic");
                 continue;
             case Instruction::Br: // branch
-                mapping.push_back("control");
+                Schedule.push_back("control");
                 continue;
             case Instruction::Switch: // switch
-                mapping.push_back("control");
+                Schedule.push_back("control");
                 continue;
             case Instruction::Store: // store
                 mem_units--;
-                mapping.push_back("reg");
+                Schedule.push_back("reg");
                 continue;
             case Instruction::Load: // load
                 mem_units--;
-                mapping.push_back("reg");
+                Schedule.push_back("reg");
                 continue;
             case Instruction::Call: // function call
                 mem_units--;
-                mapping.push_back("control");
+                Schedule.push_back("control");
                 continue;
             case Instruction::Alloca: // Ignore allocate stack
                 continue;
             case Instruction::GetElementPtr: // Ignore get address
-                mapping.push_back("memory");
+                Schedule.push_back("memory");
                 continue;
             case Instruction::BitCast: // Ignore convert type without bit change
                 continue;
             case Instruction::Ret: // Ignore return
-                mapping.push_back("control");
+                Schedule.push_back("control");
                 continue;
             default:
-                errs() << "Can't map bb, instruction " << it.getOpcodeName() << " not supported!" << "\n";
+                errs() << "Can't map bb, instruction " << it->getOpcodeName() << " not supported!" << "\n";
                 fail = true;
                 break;
         }
@@ -295,17 +326,16 @@ bool SingletonPass::runOnBasicBlock(BasicBlock &bb, Module &M)
     flog_pes = pe_len * pe_len * l_ratio * f_ratio / dmal_total / fi_total - flog_pes;
     mem_units = (pe_len + 1) * (pe_len + 1) - mem_units;
     if (!fail) {
-        outfile << "Basic block can be mapped with " << 
+        outfile << "Global schedule passed with " << 
             idiv_pes << "," << imul_pes << "," << iari_pes << "," <<
             fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
             ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
     }
     
-    bool mapDone = mappingFunc(mapping);
     return true;
 }
 
-bool SingletonPass::mappingFunc(std::list<string> &mapping) {
+bool SingletonPass::runMapping(std::list<string> &mapping) {
     int slcUnits  = dmal_total * fi_total;
     int noOfSlcs  = (pe_len * pe_len) / slcUnits; // assert this is int
     int insToMap  = mapping.size();
@@ -468,28 +498,7 @@ bool SingletonPass::mappingFunc(std::list<string> &mapping) {
     return mapped;
 }
 
-int SingletonPass::runDGInFunction(Function &F) {
-  std::list<Instruction*> Used;
-  int height = 0;
-  while (Used.size() < getSizeFunction(F)) {
-    std::list<Instruction*> Deps; 
-    for (auto &B: F) {
-        for (auto &I: B) {
-            if (checkInstrNotInList(Used, I)) {
-              Deps.push_back(&I);
-              if (checkInstrDependence(Deps, I)) {
-                Used.push_back(&I);
-                int depth = 1;
-                depth = runDepthSearch(I, depth, I);
-                outfile << "Instruction: " << " height: " << height << ", depth: " << depth << "\n\n";
-              }
-            }
-        }
-    }
-    height = height + 1;
-  }
-  return height;
-}
+/* Support Functions */
 
 int SingletonPass::getSizeFunction(Function &F) {
   int size = 0; 
