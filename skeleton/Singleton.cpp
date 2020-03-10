@@ -34,16 +34,20 @@ namespace {
       static char ID;
       SingletonPass() : ModulePass(ID) {}
       
-      virtual bool runOnModule(Module &M); //when there is a Module
-      virtual bool runOnFunction(Function &F, Module &M); //called by runOnModule
-      virtual bool runSorting(BasicBlock &BB, std::list<Instruction*> &Sorted);
-      virtual bool runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule);
-      virtual bool runMapping(std::list<string> &Schedule);
+      virtual bool runOnModule(Module &M); // when there is a Module
+      virtual bool runOnFunction(Function &F, Module &M); // for selected functions run function
+      virtual bool runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted); // take in basic block and generate 
+                                                                                // sorted list first on height, then on depth
+      virtual bool runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted);
+      virtual bool runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule); // take in sorted list and 
+                                                                                               // generate a schedule
+      virtual bool runMapping(std::list<string> &Schedule); // take in a schedule and generate a mapping
       
-      virtual int  getSizeFunction(Function &F);
-      virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I);
-      virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I);
-      virtual int  runDepthSearch(Instruction &I, int depth, Instruction &init);
+      virtual int  getSizeFunction(Function &F); // given a function, return the number of instructions
+      virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I); // as described in name
+      virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I); // as described in name
+      virtual int  runDepthSearch(Instruction &I, int depth, Instruction &init); // given instruction, find depth from leaf
+      virtual bool runFindCritical(std::list<Instruction*> List, Instruction *Ins); // given BB, find critical path
       
       int d_ratio = 1; int m_ratio = 1; int a_ratio = 1; int l_ratio = 1;
       int f_ratio = 1; int i_ratio = 3;
@@ -85,12 +89,11 @@ bool SingletonPass::runOnModule(Module &M)
 bool SingletonPass::runOnFunction(Function &F, Module &M)
 {
     bool modified = false;
-    //string funcName = F.getName();
 
     if (SwitchOn || F.getName() == InputModule) {
         for (auto &B: F) {
             std::list<Instruction*> Sorted;
-            bool sorted    = runSorting(B, Sorted);
+            bool sorted    = runDHSorting(B, Sorted);
 
             std::list<string> Schedule;
             bool scheduled = runScheduling(Sorted, Schedule);
@@ -104,7 +107,7 @@ bool SingletonPass::runOnFunction(Function &F, Module &M)
     return modified;
 }
 
-bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> &Sorted) { 
+bool SingletonPass::runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted) { 
   outfile << "BB size: " << BB.size() << "\n";
   int height = 0;
   while (Sorted.size() < BB.size()) {
@@ -155,6 +158,46 @@ bool SingletonPass::runSorting(BasicBlock &BB, std::list<Instruction*> &Sorted) 
         ins = ins + 1;
     }
     height = height + 1;
+  }
+
+  return true;
+}
+
+bool SingletonPass::runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted) { 
+  outfile << "BB size: " << BB.size() << "\n";
+  std::list<Instruction*> Unused;
+  for (auto &I: BB) {
+      Unused.push_back(&I);
+  }
+
+  while (Unused.size() > 0) {
+      Instruction* critical;
+      int depth = runFindCritical(Unused, critical);
+
+      for (int d = 0; d < depth; d++) {
+          Sorted.push_back(critical);
+          Unused.remove(critical);
+          Instruction* nextCritical;
+          int maxDepth = 0;
+          for (auto& U : critical->uses()) {
+              User* user = U.getUser();  // Find all the places critical is used
+              Instruction* ins = cast<Instruction>(user);
+              int newDepth = 0;
+              if (ins == critical) {
+                newDepth++;
+              } else if (ins->getOpcode() == Instruction::PHI) {
+                newDepth++;
+              } else {
+                newDepth = runDepthSearch(*ins, newDepth, *ins);
+              }
+              if (newDepth > maxDepth) {
+                  maxDepth = newDepth;
+                  nextCritical = ins;
+              }
+          }
+          critical = nextCritical;
+      }
+
   }
 
   return true;
@@ -594,6 +637,19 @@ int SingletonPass::runDepthSearch(Instruction &I, int depth, Instruction &init) 
       }
   }
   return maxDepth;
+}
+
+bool SingletonPass::runFindCritical(std::list<Instruction*> List, Instruction *Ins) {
+  int maxDepth = 0;
+  for (auto& I: List) {
+      int depth = 1;
+      depth = runDepthSearch(*I, depth, *I);
+      if (depth > maxDepth) {
+          maxDepth = depth;
+          Ins = I;
+      }
+  }
+  return true;
 }
 
 char SingletonPass::ID = 0;
