@@ -47,7 +47,7 @@ namespace {
       virtual bool checkInstrNotInList(std::list<Instruction*> List, Instruction &I); // as described in name
       virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I); // as described in name
       virtual int  runDepthSearch(Instruction &I, int depth, Instruction &init); // given instruction, find depth from leaf
-      virtual bool runFindCritical(std::list<Instruction*> List, Instruction *Ins); // given BB, find critical path
+      virtual int  runFindCritical(std::list<Instruction*> List, Instruction **Ins); // given BB, find critical path
       
       int d_ratio = 1; int m_ratio = 1; int a_ratio = 1; int l_ratio = 1;
       int f_ratio = 1; int i_ratio = 3;
@@ -169,16 +169,21 @@ bool SingletonPass::runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted
   for (auto &I: BB) {
       Unused.push_back(&I);
   }
+  errs() << "Before begin unused is: " << Unused.size() << "\n";
 
   while (Unused.size() > 0) {
       Instruction* critical;
-      int depth = runFindCritical(Unused, critical);
+      int depth = runFindCritical(Unused, &critical);
+      errs() << "Critical: " << critical << ", " << *critical << ", " << " , Depth: " << depth << "\n";
 
       for (int d = 0; d < depth; d++) {
           Sorted.push_back(critical);
+          errs() << "Unused before remove " << Unused.back() << ", " << *Unused.back() << "\n";
           Unused.remove(critical);
+          errs() << "Unused after remove " << Unused.back() << "\n";
           Instruction* nextCritical;
           int maxDepth = 0;
+          errs() << Unused.size() << ", " << Sorted.size() << ", " << critical->getNumUses() << "\n";
           for (auto& U : critical->uses()) {
               User* user = U.getUser();  // Find all the places critical is used
               Instruction* ins = cast<Instruction>(user);
@@ -639,17 +644,18 @@ int SingletonPass::runDepthSearch(Instruction &I, int depth, Instruction &init) 
   return maxDepth;
 }
 
-bool SingletonPass::runFindCritical(std::list<Instruction*> List, Instruction *Ins) {
+int SingletonPass::runFindCritical(std::list<Instruction*> List, Instruction **Ins) {
   int maxDepth = 0;
   for (auto& I: List) {
       int depth = 1;
       depth = runDepthSearch(*I, depth, *I);
       if (depth > maxDepth) {
           maxDepth = depth;
-          Ins = I;
+          *Ins = I;
       }
   }
-  return true;
+  errs() << "Ins in find: " << *Ins << ", " << **Ins << ", depth " << maxDepth << "\n";
+  return maxDepth;
 }
 
 char SingletonPass::ID = 0;
