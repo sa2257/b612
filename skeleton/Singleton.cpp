@@ -167,42 +167,47 @@ bool SingletonPass::runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted
   outfile << "BB size: " << BB.size() << "\n";
   std::list<Instruction*> Unused;
   for (auto &I: BB) {
-      Unused.push_back(&I);
+      Unused.push_back(&I); // Put all instructions to a temporary list
   }
-  errs() << "Before begin unused is: " << Unused.size() << "\n";
 
   while (Unused.size() > 0) {
       Instruction* critical;
-      int depth = runFindCritical(Unused, &critical);
-      errs() << "Critical: " << critical << ", " << *critical << ", " << " , Depth: " << depth << "\n";
+      int depth = runFindCritical(Unused, &critical); // Find critical instruction
 
       for (int d = 0; d < depth; d++) {
-          Sorted.push_back(critical);
-          errs() << "Unused before remove " << Unused.back() << ", " << *Unused.back() << "\n";
-          Unused.remove(critical);
-          errs() << "Unused after remove " << Unused.back() << "\n";
+          if (checkInstrNotInList(Unused, *critical)) { // Only add up to end of BB
+              break;
+          }
+          Sorted.push_back(critical); // Put top instruction to the sorted list
+          Unused.remove(critical); // Remove sorted instruction from candidates
+          if (critical->getOpcode() == Instruction::PHI) { // if PHI don't bother tracking (maybe not needed)
+            break;
+          }
           Instruction* nextCritical;
           int maxDepth = 0;
-          errs() << Unused.size() << ", " << Sorted.size() << ", " << critical->getNumUses() << "\n";
           for (auto& U : critical->uses()) {
               User* user = U.getUser();  // Find all the places critical is used
               Instruction* ins = cast<Instruction>(user);
-              int newDepth = 0;
-              if (ins == critical) {
-                newDepth++;
-              } else if (ins->getOpcode() == Instruction::PHI) {
-                newDepth++;
-              } else {
-                newDepth = runDepthSearch(*ins, newDepth, *ins);
-              }
+              int newDepth = runDepthSearch(*ins, newDepth, *ins);
               if (newDepth > maxDepth) {
                   maxDepth = newDepth;
-                  nextCritical = ins;
+                  nextCritical = ins; // find next in critical path
               }
+          }
+          if (nextCritical == critical) {
+              errs() << "critical and next is the same\n";
+              break;
           }
           critical = nextCritical;
       }
 
+  }
+  
+  for (auto item: Sorted) {
+      std::string str;
+      llvm::raw_string_ostream rso(str);
+      item->print(rso);
+      outfile << str << "\n";
   }
 
   return true;
@@ -210,6 +215,7 @@ bool SingletonPass::runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted
 
 bool SingletonPass::runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule)
 {
+    outfile << "Sorted list size: " << Sorted.size() << "\n";
     // available pe resources.
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
     int imul_pes = pe_len * pe_len * m_ratio * i_ratio / dmal_total / fi_total;
@@ -628,8 +634,8 @@ int SingletonPass::runDepthSearch(Instruction &I, int depth, Instruction &init) 
           } else if (ins->getOpcode() == Instruction::PHI) {
             depth++;
           } else if (depth > 15) {
-            errs() << "Uncaptured possibly cyclic behaviour!\n";
-            errs() << "Instruction: " << I << " , next: " << *ins << " , start: " << init << "\n";
+            errs() << "Uncaptured possibly cyclic behaviour!\n"; // I don't get this yet!
+            //errs() << "Instruction: " << I << " , next: " << *ins << " , start: " << init << "\n";
           } else {
             depth = runDepthSearch(*ins, depth, init);
           }
@@ -654,7 +660,7 @@ int SingletonPass::runFindCritical(std::list<Instruction*> List, Instruction **I
           *Ins = I;
       }
   }
-  errs() << "Ins in find: " << *Ins << ", " << **Ins << ", depth " << maxDepth << "\n";
+  //errs() << "Ins in find: " << *Ins << ", " << **Ins << ", depth " << maxDepth << "\n";
   return maxDepth;
 }
 
