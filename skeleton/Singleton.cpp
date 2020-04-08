@@ -19,8 +19,12 @@
 #include <vector>
 #include <fstream>
 #include <list>
+#include <tuple> 
 
 #include "llvm/Support/CommandLine.h"
+
+#define DUMP_TREE
+// DUMP_ALL, DUMP_TREE
 
 using namespace std;
 using namespace llvm;
@@ -36,9 +40,13 @@ namespace {
       
       virtual bool runOnModule(Module &M); // when there is a Module
       virtual bool runOnFunction(Function &F, Module &M); // for selected functions run function
-      virtual bool runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted); // take in basic block and generate 
+      virtual void dumpIns(BasicBlock &BB);
+      virtual bool runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted, std::list< tuple<int, int> > &Edges); // take in basic block and generate 
                                                                                 // sorted list first on height, then on depth
       virtual bool runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted);
+#ifdef DUMP_TREE
+      virtual void dumpTree(std::list<Instruction*> Sorted, std::list< tuple<int, int> > Edges, int* insNum);
+#endif
       virtual bool runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule); // take in sorted list and 
                                                                                                // generate a schedule
       virtual bool runMapping(std::list<string> &Schedule); // take in a schedule and generate a mapping
@@ -48,6 +56,8 @@ namespace {
       virtual bool checkInstrDependence(std::list<Instruction*> List, Instruction &I); // as described in name
       virtual int  runDepthSearch(Instruction &I, int depth, Instruction &init); // given instruction, find depth from leaf
       virtual int  runFindCritical(std::list<Instruction*> List, Instruction **Ins); // given BB, find critical path
+      virtual bool markSuccessors(std::list<Instruction*> List, Instruction &I, int insIdx, std::list< tuple<int, int> > &Edges);
+      //virtual bool markSuccessors(std::list<Instruction*> List, Instruction &I, int insIdx); // given instruction and the already sorted, mark the dependency edges
       
       int d_ratio = 1; int m_ratio = 1; int a_ratio = 1; int l_ratio = 1;
       int f_ratio = 1; int i_ratio = 3;
@@ -62,8 +72,10 @@ bool SingletonPass::runOnModule(Module &M)
     errs() << "Pass run status: " << SwitchOn << "\n";
     errs() << "Pass running on: " << InputModule << "\n";
     outfile.open("output.txt", std::ios_base::app);
+#ifdef DUMP_ALL
     outfile << "Pass run status: " << SwitchOn << "\n";
     outfile << "Pass running on: " << InputModule << "\n";
+#endif
     
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
     int imul_pes = pe_len * pe_len * m_ratio * i_ratio / dmal_total / fi_total;
@@ -74,10 +86,12 @@ bool SingletonPass::runOnModule(Module &M)
     int fari_pes = pe_len * pe_len * a_ratio * f_ratio / dmal_total / fi_total;
     int flog_pes = pe_len * pe_len * l_ratio * f_ratio / dmal_total / fi_total;
     int mem_units = (pe_len + 1) * (pe_len + 1);
+#ifdef DUMP_ALL
     outfile << "Available resources: " << 
         idiv_pes << "," << imul_pes << "," << iari_pes << "," <<
         fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
         ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
+#endif
     
     for (auto &func: M) {
         bool modified = runOnFunction(func, M);
@@ -89,17 +103,28 @@ bool SingletonPass::runOnModule(Module &M)
 bool SingletonPass::runOnFunction(Function &F, Module &M)
 {
     bool modified = false;
+#ifdef DUMP_TREE
+    int ins = 0;
+#endif
 
     if (SwitchOn || F.getName() == InputModule) {
         for (auto &B: F) {
+#ifdef DUMP_ALL
+            dumpIns(B);
+#endif
             std::list<Instruction*> Sorted;
-            bool sorted    = runDHSorting(B, Sorted);
+            std::list< tuple<int, int> > Edges;
+            bool sorted    = runHDSorting(B, Sorted, Edges);
 
+#ifdef DUMP_TREE
+            dumpTree(Sorted, Edges, &ins);
+#elif
             std::list<string> Schedule;
             bool scheduled = runScheduling(Sorted, Schedule);
 
 
             bool placement = runMapping(Schedule);
+#endif
             modified = true;
         }
     }
@@ -107,8 +132,23 @@ bool SingletonPass::runOnFunction(Function &F, Module &M)
     return modified;
 }
 
-bool SingletonPass::runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted) { 
+void SingletonPass::dumpIns(BasicBlock &BB) {
+    int ins = 0;
+    outfile << "Ins list: \n";
+    for (auto &I: BB) {
+        std::string str;
+        llvm::raw_string_ostream rso(str);
+        I.print(rso);
+        outfile << ins << ": " << str << "\n";
+        ins++;
+    }
+    outfile << "\n";
+}
+
+bool SingletonPass::runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted, std::list< tuple<int, int> > &Edges) { 
+#ifdef DUMP_ALL
   outfile << "BB size: " << BB.size() << "\n";
+#endif
   int height = 0;
   while (Sorted.size() < BB.size()) {
     std::list<Instruction*> Deps; 
@@ -125,7 +165,10 @@ bool SingletonPass::runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted
             std::string str;
             llvm::raw_string_ostream rso(str);
             I.print(rso);
+#ifdef DUMP_ALL
             outfile << str << " , " << Sorted.size() + 1 << " , " << height << " , " << depth << "\n";
+#endif
+            bool dependencyMark = markSuccessors(Sorted, I, Sorted.size() + 1, Edges);
             if (depth > maxDepth) {
                 maxDepth = depth;
                 Temp.push_back(&I);
@@ -159,6 +202,14 @@ bool SingletonPass::runHDSorting(BasicBlock &BB, std::list<Instruction*> &Sorted
     }
     height = height + 1;
   }
+
+#ifdef DUMP_ALL
+  outfile << "Edge list: ";
+  for (auto item: Edges) {
+      outfile << get<0>(item) << "<-" << get<1>(item) << ", ";
+  }
+  outfile << "\n\n";
+#endif
 
   return true;
 }
@@ -203,19 +254,48 @@ bool SingletonPass::runDHSorting(BasicBlock &BB, std::list<Instruction*> &Sorted
 
   }
   
+#ifdef DUMP_ALL
   for (auto item: Sorted) {
       std::string str;
       llvm::raw_string_ostream rso(str);
       item->print(rso);
       outfile << str << "\n";
   }
+#endif
 
   return true;
 }
 
+#ifdef DUMP_TREE
+void SingletonPass::dumpTree(std::list<Instruction*> Sorted, std::list< tuple<int, int> > Edges, int* insNum)
+{
+    int ins = *insNum;
+    int insStart = *insNum;
+    //outfile << "Ins list: \n";
+    for (auto item: Sorted){
+        //std::string str;
+        //llvm::raw_string_ostream rso(str);
+        //item->print(rso);
+        //outfile << ins << ": " << str << "\n";
+        outfile << ins << ":" << ins - insStart << ": "<< item->getOpcodeName() << ", ";
+        for (auto edge: Edges) {
+            if (get<0>(edge) == ins - insStart) {
+                outfile << get<1>(edge) + insStart << ", ";
+            }
+        }
+        outfile << "\n";
+        ins++;
+    }
+    //outfile << "\n\n";
+    *insNum = ins;
+}
+#endif
+
 bool SingletonPass::runScheduling(std::list<Instruction*> Sorted, std::list<string> &Schedule)
 {
+#ifdef DUMP_ALL
     outfile << "Sorted list size: " << Sorted.size() << "\n";
+#endif
     // available pe resources.
     int idiv_pes = pe_len * pe_len * d_ratio * i_ratio / dmal_total / fi_total;
     int imul_pes = pe_len * pe_len * m_ratio * i_ratio / dmal_total / fi_total;
@@ -410,10 +490,12 @@ bool SingletonPass::runScheduling(std::list<Instruction*> Sorted, std::list<stri
     flog_pes = pe_len * pe_len * l_ratio * f_ratio / dmal_total / fi_total - flog_pes;
     mem_units = (pe_len + 1) * (pe_len + 1) - mem_units;
     if (!fail) {
+#ifdef DUMP_ALL
         outfile << "Global schedule passed with " << 
             idiv_pes << "," << imul_pes << "," << iari_pes << "," <<
             fdiv_pes << "," << fmul_pes << "," << fari_pes << "," <<
             ilog_pes << "," << flog_pes << "," << mem_units << "\n" ;
+#endif
     }
     
     return !fail;
@@ -447,7 +529,9 @@ bool SingletonPass::runMapping(std::list<string> &Schedule) {
         while(i < insToMap) {
             string S = Schedule.front();
             Schedule.pop_front();
+#ifdef DUMP_ALL
             outfile << i << ": " << S << "\n";
+#endif
             
             if (S == "arith") {
                 if (iariUnits == 3) {
@@ -566,6 +650,7 @@ bool SingletonPass::runMapping(std::list<string> &Schedule) {
         errs() << "Ran out of fabric before mapping!\n";
         mapped = false;
     } else {
+#ifdef DUMP_ALL
         outfile << "PE Mapping passed with: \n"; 
         for (int s = 0; s < noOfSlcs; s++) {
             outfile << "Slice: " << s << "\n";
@@ -583,6 +668,7 @@ bool SingletonPass::runMapping(std::list<string> &Schedule) {
             }
             outfile << "\n";
         }
+#endif
         mapped = true;
     }
 
@@ -662,6 +748,24 @@ int SingletonPass::runFindCritical(std::list<Instruction*> List, Instruction **I
   }
   //errs() << "Ins in find: " << *Ins << ", " << **Ins << ", depth " << maxDepth << "\n";
   return maxDepth;
+}
+
+bool SingletonPass::markSuccessors(std::list<Instruction*> List, Instruction &I, int insIdx, std::list< tuple<int, int> > &Edges) {
+    int i = -1;
+    for (auto L: List) {
+        i++;
+        for (auto& U : L->uses()) {
+            User* user = U.getUser();
+            if (user == &I) {
+                std::string str;
+                llvm::raw_string_ostream rso(str);
+                I.print(rso);
+                Edges.push_back( tuple<int, int>(insIdx - 1, i) );
+                //outfile << str << " , " << insIdx << "<- " << i << "\n";
+            }
+        }
+    }
+    return true;
 }
 
 char SingletonPass::ID = 0;
