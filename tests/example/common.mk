@@ -1,0 +1,1 @@
+../../machsuite/_machsuite/common.mk
