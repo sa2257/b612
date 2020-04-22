@@ -1,37 +1,30 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-int main(int argc, char *argv[])
-{
+int call_simulator(char *module, char *function, int argN, int *inputs) {
     PyObject *pName, *pModule, *pFunc;
     PyObject *pArgs, *pValue;
-    int i;
-
-    if (argc < 3) {
-        fprintf(stderr,"Usage: call pythonfile funcname [args]\n");
-        return 1;
-    }
+    int i; long result;
 
     Py_Initialize();
     /* These two lines allow looking up for modules in the current directory */
     PyRun_SimpleString("import sys");
     PyRun_SimpleString("sys.path.append(\".\")");
 
-    pName = PyUnicode_DecodeFSDefault(argv[1]);
+    pName = PyUnicode_DecodeFSDefault(module);
     /* Error checking of pName left out */
 
     pModule = PyImport_Import(pName);
     Py_DECREF(pName);
 
-    long result = 0;
     if (pModule != NULL) {
-        pFunc = PyObject_GetAttrString(pModule, argv[2]);
+        pFunc = PyObject_GetAttrString(pModule, function);
         /* pFunc is a new reference */
 
         if (pFunc && PyCallable_Check(pFunc)) {
-            pArgs = PyTuple_New(argc - 3);
-            for (i = 0; i < argc - 3; ++i) {
-                pValue = PyLong_FromLong(atoi(argv[i + 3]));
+            pArgs = PyTuple_New(argN);
+            for (i = 0; i < argN; ++i) {
+                pValue = PyLong_FromLong(inputs[i]);
                 if (!pValue) {
                     Py_DECREF(pArgs);
                     Py_DECREF(pModule);
@@ -59,14 +52,14 @@ int main(int argc, char *argv[])
         else {
             if (PyErr_Occurred())
                 PyErr_Print();
-            fprintf(stderr, "Cannot find function \"%s\"\n", argv[2]);
+            fprintf(stderr, "Cannot find function \"%s\"\n", function);
         }
         Py_XDECREF(pFunc);
         Py_DECREF(pModule);
     }
     else {
         PyErr_Print();
-        fprintf(stderr, "Failed to load \"%s\"\n", argv[1]);
+        fprintf(stderr, "Failed to load \"%s\"\n", module);
         return 1;
     }
 
@@ -75,5 +68,14 @@ int main(int argc, char *argv[])
     }
 
     printf("Result from C is %ld\n", result);
+    return 0;
+}
+
+int main() {
+    char *module = "multiply";
+    char *function = "multiply";
+    int argN = 2;
+    int inputs[2] = {4, 6};
+    call_simulator(module, function, argN, inputs);
     return 0;
 }
