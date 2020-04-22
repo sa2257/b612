@@ -1,23 +1,29 @@
 #define PY_SSIZE_T_CLEAN
-//#ifdef __APPLE__
-//     #include <Python/Python.h>
-//     #if MAC_OS_X_VERSION_MAX_ALLOWED < 101300
-//         #include <Python/Python.h>
-//     #else
-//         #include <Python2.7/Python.h>
-//     #endif
-// #else
-//     #include <python2.7/Python.h>
-// #endif
 #include <Python.h>
-
+  
 int main(int argc, char *argv[])
 {
-    wchar_t *program = Py_DecodeLocale(argv[0], NULL);
+    int counter; 
+    printf("Program Name Is: %s",argv[0]); 
+    if(argc==1) 
+        printf("\nNo Extra Command Line Argument Passed Other Than Program Name"); 
+        printf("\n");
+    if(argc>=2) 
+    { 
+        printf("\nNumber Of Arguments Passed: %d",argc); 
+        printf("\n----Following Are The Command Line Arguments Passed----"); 
+        for(counter=0;counter<argc;counter++) 
+            printf("\nargv[%d]: %s",counter,argv[counter]); 
+        printf("\n");
+    }
+ 
+    wchar_t *program = Py_DecodeLocale(argv[1], NULL);
     if (program == NULL) {
-        fprintf(stderr, "Fatal error: cannot decode argv[0]\n");
+        fprintf(stderr, "Fatal error: cannot decode argv[1]\n");
         exit(1);
     }
+    printf("The program is %s\n", argv[1]);
+    printf("At the start of the program!\n");
     Py_SetProgramName(program);  /* optional but recommended */
     Py_Initialize();
     PyRun_SimpleString("from time import time,ctime\n"
@@ -26,5 +32,6 @@ int main(int argc, char *argv[])
         exit(120);
     }
     PyMem_RawFree(program);
+    printf("Done with the program!\n");
     return 0;
 }
