@@ -13,12 +13,17 @@ int main(int argc, char *argv[])
     }
 
     Py_Initialize();
+    /* These two lines allow looking up for modules in the current directory */
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append(\".\")");
+
     pName = PyUnicode_DecodeFSDefault(argv[1]);
     /* Error checking of pName left out */
 
     pModule = PyImport_Import(pName);
     Py_DECREF(pName);
 
+    long result = 0;
     if (pModule != NULL) {
         pFunc = PyObject_GetAttrString(pModule, argv[2]);
         /* pFunc is a new reference */
@@ -40,6 +45,7 @@ int main(int argc, char *argv[])
             Py_DECREF(pArgs);
             if (pValue != NULL) {
                 printf("Result of call: %ld\n", PyLong_AsLong(pValue));
+                result = PyLong_AsLong(pValue);
                 Py_DECREF(pValue);
             }
             else {
@@ -63,8 +69,11 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failed to load \"%s\"\n", argv[1]);
         return 1;
     }
+
     if (Py_FinalizeEx() < 0) {
         return 120;
     }
+
+    printf("Result from C is %ld\n", result);
     return 0;
 }
