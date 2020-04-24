@@ -1,10 +1,11 @@
-SOURCES   := $(HW_SRCS) $(HOST_SRCS)
+SOURCES   := $(HW_SRCS) $(HOST_SRCS) $(RT_SRCS)
 LLVMS     := $(SOURCES:%.c=%.ll)
+RTPASS    := $(HW_SRCS:%.c=%-rt.ll) $(RT_SRCS:%.c=%.ll)
 PROFPASS  := $(SOURCES:%.c=%-prof.ll)
 ALLCPASS  := $(SOURCES:%.c=%-alloc.ll)
 DEPSPASS  := $(SOURCES:%.c=%-dep.ll)
 PLCEPASS  := $(SOURCES:%.c=%-plc.ll)
-PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPSPASS) $(PLCEPASS)
+PASSES    := $(PROFPASS) $(ALLCPASS) $(DEPSPASS) $(PLCEPASS) $(RTPASS)
 TARGET    := $(KERNEL)
 SIMPLE    := exe
 OUTPUT	  := output.txt
@@ -15,7 +16,8 @@ CXX       := clang
 OPT       := /usr/local/opt/llvm/bin/opt
 ASMFLAG   := -S
 LLVMFLAG  := -emit-llvm
-CXXFLAGS  := -O3
+CXXFLAGS  := 
+RTFLAGS   := -load ../../build/skeleton/libSkeletonPass.so --skeleton
 PROFFLAGS := -load ../../build/skeleton/libShackletonPass.so --shackleton
 ALLCFLAGS := -load ../../build/skeleton/libStiltonPass.so --stilton
 DEPSFLAGS := -load ../../build/skeleton/libSheltonPass.so --shelton
@@ -25,6 +27,10 @@ PASSFLAGS := -select
 # Create assembly.
 %.ll: %.c
 	$(CXX) $(CXXFLAGS) $^ $(ASMFLAG) $(LLVMFLAG) -o $@
+
+# Add runtime library pass on kernel.
+$(KERNEL)-rt.ll: $(KERNEL).ll
+	$(OPT) $(RTFLAGS) $(ASMFLAG) $^ -o $@
 
 # Run profile pass on kernel.
 $(KERNEL)-prof.ll: $(KERNEL).ll
@@ -47,7 +53,7 @@ $(KERNEL)-plc.ll: $(KERNEL).ll
 	$(OPT) $(PLCEFLAGS) $(PASSFLAGS) $(ASMFLAG) $^ -o $@
 
 # Link the program.
-$(TARGET): $(PROFPASS)
+$(TARGET): $(RTPASS)
 	$(CXX+) $^ --output $@
 
 # Link the program.
@@ -58,6 +64,11 @@ $(SIMPLE): $(LLVMS)
 .PHONY: simple
 simple: $(SIMPLE)
 	./$(SIMPLE)
+
+# Run linking pass.
+.PHONY: runtime
+runtime: $(TARGET)
+	./$(TARGET)
 
 # Run profiler.
 .PHONY: profile
