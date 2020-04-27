@@ -79,11 +79,3 @@ void rtlib(int argN) {
     call_simulator(module, function, argN, inputs);
 }
 
-//int main() {
-//    char *module = "multiply";
-//    char *function = "multiply";
-//    int argN = 2;
-//    int inputs[2] = {4, 6};
-//    call_simulator(module, function, argN, inputs);
-//    return 0;
-//}

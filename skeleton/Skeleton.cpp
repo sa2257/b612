@@ -42,7 +42,7 @@ namespace {
 // Get the function to call from our runtime library.
 		LLVMContext& Ctx = F.getContext();
 		FunctionCallee logFunc = F.getParent()->getOrInsertFunction(
-		  "logop", Type::getVoidTy(Ctx), Type::getInt32Ty(Ctx)
+		  "rtlib", Type::getVoidTy(Ctx), Type::getInt32Ty(Ctx)
 		);
 		
 		for (auto& B : F) {
