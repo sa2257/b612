@@ -115,21 +115,21 @@ int call_simulator(char *module, char *function, int *inputs, int *outputs, bool
         return 120;
     }
 
-    printf("Result is: ");
-    for(i=0; i < size; i++){
-        printf("%d, ", outputs[i]);
-    }
-    printf("\n");
     return 0;
 }
 
-void rtlib(int size) {
+int rtlib(int ticks, int size) {
     char *module = "sim_lib";
     char *function = "simulate";
-    int ticks = 5;
     int inputs[2] = {4, 6};
     int outputs[2] = {6, 14};
     bool ready[2] = {true, true};
     bool check[2] = {true, true};
     call_simulator(module, function, inputs, outputs, ready, check, ticks, size);
+    printf("Result is: ");
+    for(int i=0; i < size; i++){
+        printf("%d, ", outputs[i]);
+    }
+    printf("\n");
+    return outputs[0];
 }

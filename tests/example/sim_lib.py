@@ -1,5 +1,3 @@
-print("Hello world!")
-
 def simulate(input_queues, output_queues, ready_queue, check_queue, max_ticks, array_dim): 
     print("Will compute", array_dim, "for", max_ticks, "cycles..")
     inputs = input_queues[0]
