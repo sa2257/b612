@@ -118,10 +118,10 @@ int call_simulator(char *module, char *function, int *inputs, int *outputs, bool
     return 0;
 }
 
-int rtlib(int ticks, int size) {
+int rtlib(int in1, int in2, int ticks, int size) {
     char *module = "sim_lib";
     char *function = "simulate";
-    int inputs[2] = {4, 6};
+    int inputs[2] = {in1, in2};
     int outputs[2] = {6, 14};
     bool ready[2] = {true, true};
     bool check[2] = {true, true};
